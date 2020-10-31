@@ -1,5 +1,5 @@
 [package]
-name = "rust-win32-test"
+name = "screenshot"
 version = "0.1.0"
 authors = ["robmikh <rob.mikh@outlook.com>"]
 edition = "2018"

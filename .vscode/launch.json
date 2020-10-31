@@ -8,7 +8,7 @@
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/rust-win32-test.exe",
+            "program": "${workspaceFolder}/target/debug/screenshot.exe",
             "args": [ "Studio" ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
