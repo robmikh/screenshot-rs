@@ -9,12 +9,16 @@ mod window_info;
 use capture::enumerate_capturable_windows;
 use hresult::AsHresult;
 use std::io::Write;
-use win_rt_interop_tools::{desktop::CaptureItemInterop, Direct3D11Device};
-use window_info::WindowInfo;
-use windows::graphics::capture::{
-    Direct3D11CaptureFramePool, GraphicsCaptureItem, GraphicsCaptureSession,
+use std::sync::mpsc::channel;
+use win_rt_interop_tools::{
+    desktop::CaptureItemInterop, Direct3D11CpuAccessFlag, Direct3D11Device, Direct3D11Texture2D,
 };
-use windows::graphics::directx::DirectXPixelFormat;
+use window_info::WindowInfo;
+use windows::foundation::TypedEventHandler;
+use windows::graphics::capture::Direct3D11CaptureFramePool;
+use windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
+use windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
+use windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
 
 fn main() -> winrt::Result<()> {
     unsafe {
@@ -24,17 +28,77 @@ fn main() -> winrt::Result<()> {
     if let Some(query) = std::env::args().nth(1) {
         let window = get_window_from_query(&query)?;
         let item = CaptureItemInterop::create_for_window(window.handle as u64)?;
+        let item_size = item.size()?;
 
         let device = Direct3D11Device::new()?;
         let frame_pool = Direct3D11CaptureFramePool::create_free_threaded(
             &device,
             DirectXPixelFormat::B8G8R8A8UIntNormalized,
             1,
-            item.size()?,
+            &item_size,
         )?;
-        let _session = frame_pool.create_capture_session(&item)?;
+        let session = frame_pool.create_capture_session(&item)?;
 
-        // TODO: impl getting the bits in WinRTInteropTools
+        let (sender, receiver) = channel();
+        frame_pool.frame_arrived(
+            TypedEventHandler::<Direct3D11CaptureFramePool, winrt::Object>::new({
+                let device = device.clone();
+                let session = session.clone();
+                move |frame_pool, _| {
+                    let frame = frame_pool.try_get_next_frame()?;
+                    let source_texture =
+                        Direct3D11Texture2D::create_from_direct3d_surface(frame.surface()?)?;
+                    let mut desc = source_texture.description2d()?;
+                    desc.usage = Direct3DUsage::Staging;
+                    desc.cpu_access_flags = Direct3D11CpuAccessFlag::AccessRead;
+                    unsafe {
+                        use std::mem::transmute;
+                        desc.bind_flags = transmute(0);
+                        desc.misc_flags = transmute(0);
+                    }
+                    let copy_texture = device.create_texture2d(desc)?;
+
+                    let context = device.immediate_context()?;
+                    context.copy_resource(&copy_texture, source_texture)?;
+
+                    session.close()?;
+                    frame_pool.close()?;
+
+                    sender.send(copy_texture).unwrap();
+                    Ok(())
+                }
+            }),
+        )?;
+        session.start_capture()?;
+
+        let texture = receiver.recv().unwrap();
+        let bits = texture.get_bytes()?;
+
+        let path = std::env::current_dir()
+            .unwrap()
+            .to_string_lossy()
+            .to_string();
+        let folder = StorageFolder::get_folder_from_path_async(path.as_str())?.get()?;
+        let file = folder
+            .create_file_async("screenshot.png", CreationCollisionOption::ReplaceExisting)?
+            .get()?;
+
+        {
+            let stream = file.open_async(FileAccessMode::ReadWrite)?.get()?;
+            let encoder =
+                BitmapEncoder::create_async(BitmapEncoder::png_encoder_id()?, stream)?.get()?;
+            encoder.set_pixel_data(
+                BitmapPixelFormat::Bgra8,
+                BitmapAlphaMode::Premultiplied,
+                item_size.width as u32,
+                item_size.height as u32,
+                1.0,
+                1.0,
+                &bits,
+            )?;
+
+            encoder.flush_async()?.get()?;
+        }
     } else {
         println!("No window query given!");
     }

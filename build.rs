@@ -2,6 +2,12 @@ fn main() {
     winrt::build!(
         types
             windows::ui::Colors
+            windows::storage::{
+                StorageFolder,
+                StorageFile,
+                CreationCollisionOption,
+                FileAccessMode,
+            }
             windows::graphics::capture::{
                 Direct3D11CaptureFramePool,
                 Direct3D11CaptureFrame,
@@ -11,9 +17,21 @@ fn main() {
             windows::graphics::directx::{
                 DirectXPixelFormat
             }
+            windows::graphics::directx::direct3d11::{
+                Direct3DUsage,
+                Direct3DBindings,
+            }
+            windows::graphics::imaging::{
+                BitmapEncoder,
+                BitmapPixelFormat,
+                BitmapAlphaMode,
+            }
             win_rt_interop_tools::{
                 Direct3D11Device,
                 Direct3D11DeviceContext,
+                Direct3D11CpuAccessFlag,
+                Direct3D11Texture2DDescription,
+                Direct3D11Texture2D,
             }
             win_rt_interop_tools::desktop::{
                 CaptureItemInterop

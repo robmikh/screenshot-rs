@@ -14,4 +14,4 @@ winrt = { git = "https://github.com/microsoft/winrt-rs.git" }
 [package.metadata.winrt.dependencies]
 "Microsoft.Windows.SDK.Contracts" = "10.0.19041.1"
 "Microsoft.VCRTForwarders.140" = "1.0.7"
-"WinRTInteropTools" = "0.0.7-prerelease"
+"WinRTInteropTools" = "0.0.8-prerelease"
