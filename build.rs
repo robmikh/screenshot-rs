@@ -8,9 +8,15 @@ fn main() {
                 GraphicsCaptureSession,
                 GraphicsCaptureItem,
             }
+            windows::graphics::directx::{
+                DirectXPixelFormat
+            }
             win_rt_interop_tools::{
                 Direct3D11Device,
                 Direct3D11DeviceContext,
+            }
+            win_rt_interop_tools::desktop::{
+                CaptureItemInterop
             }
     );
 }

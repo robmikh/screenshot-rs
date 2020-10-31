@@ -9,8 +9,12 @@ mod window_info;
 use capture::enumerate_capturable_windows;
 use hresult::AsHresult;
 use std::io::Write;
-use win_rt_interop_tools::Direct3D11Device;
+use win_rt_interop_tools::{desktop::CaptureItemInterop, Direct3D11Device};
 use window_info::WindowInfo;
+use windows::graphics::capture::{
+    Direct3D11CaptureFramePool, GraphicsCaptureItem, GraphicsCaptureSession,
+};
+use windows::graphics::directx::DirectXPixelFormat;
 
 fn main() -> winrt::Result<()> {
     unsafe {
@@ -18,8 +22,19 @@ fn main() -> winrt::Result<()> {
     }
 
     if let Some(query) = std::env::args().nth(1) {
-        let _window = get_window_from_query(&query)?;
-        let _device = Direct3D11Device::new()?;
+        let window = get_window_from_query(&query)?;
+        let item = CaptureItemInterop::create_for_window(window.handle as u64)?;
+
+        let device = Direct3D11Device::new()?;
+        let frame_pool = Direct3D11CaptureFramePool::create_free_threaded(
+            &device,
+            DirectXPixelFormat::B8G8R8A8UIntNormalized,
+            1,
+            item.size()?,
+        )?;
+        let _session = frame_pool.create_capture_session(&item)?;
+
+        // TODO: impl getting the bits in WinRTInteropTools
     } else {
         println!("No window query given!");
     }
