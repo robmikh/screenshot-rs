@@ -1,0 +1,8 @@
+[package]
+name = "rust-win32-test"
+version = "0.1.0"
+authors = ["robmikh <rob.mikh@outlook.com>"]
+edition = "2018"
+
+[dependencies]
+win32 = { git = "https://github.com/microsoft/win32-rs.git" }
