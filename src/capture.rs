@@ -49,7 +49,8 @@ impl CaptureWindowCandidate for WindowInfo {
             }
 
             // Check to see if the self is cloaked if it's a UWP
-            if self.class_name == "Windows.UI.Core.CoreWindow" || self.class_name == "ApplicationFrameWindow"
+            if self.class_name == "Windows.UI.Core.CoreWindow"
+                || self.class_name == "ApplicationFrameWindow"
             {
                 let mut cloaked: u32 = 0;
                 if dwmapi::DwmGetWindowAttribute(

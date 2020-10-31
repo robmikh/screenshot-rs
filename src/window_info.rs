@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct WindowInfo {
     pub handle: isize,
     pub title: String,

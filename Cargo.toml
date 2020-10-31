@@ -6,3 +6,12 @@ edition = "2018"
 
 [dependencies]
 win32 = { git = "https://github.com/microsoft/win32-rs.git" }
+winrt = { git = "https://github.com/microsoft/winrt-rs.git" }
+
+[build-dependencies]
+winrt = { git = "https://github.com/microsoft/winrt-rs.git" }
+
+[package.metadata.winrt.dependencies]
+"Microsoft.Windows.SDK.Contracts" = "10.0.19041.1"
+"Microsoft.VCRTForwarders.140" = "1.0.7"
+"WinRTInteropTools" = "0.0.7-prerelease"
