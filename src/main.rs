@@ -17,10 +17,12 @@ fn main() -> winrt::Result<()> {
         win32::RoInitialize(win32::RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
     }
 
-    let query = std::env::args().nth(1).expect("no window given");
-
-    let _window = get_window_from_query(&query)?;
-    let _device = Direct3D11Device::new()?;
+    if let Some(query) = std::env::args().nth(1) {
+        let _window = get_window_from_query(&query)?;
+        let _device = Direct3D11Device::new()?;
+    } else {
+        println!("No window query given!");
+    }
 
     Ok(())
 }
