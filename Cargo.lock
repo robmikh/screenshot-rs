@@ -10,12 +10,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.33"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1fd36ffbb1fb7c834eac128ea8d0e310c5aeb635548f9d58861e1308d46e71c"
-
-[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -33,21 +27,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
+name = "bindings"
+version = "0.1.0"
+dependencies = [
+ "winrt",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
-
-[[package]]
-name = "cargo_toml"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "513d17226888c7b8283ac02a1c1b0d8a9d4cbf6db65dfadb79f598f5d7966fe9"
-dependencies = [
- "serde",
- "serde_derive",
- "toml",
-]
 
 [[package]]
 name = "cfg-if"
@@ -78,9 +68,9 @@ checksum = "fb58b6451e8c2a812ad979ed1d83378caa5e927eef2622017a45f251457c2c9d"
 
 [[package]]
 name = "const_fn"
-version = "0.4.2"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce90df4c658c62f12d78f7508cf92f9173e5184a539c10bfe54a3107b3ffd0f2"
+checksum = "28b9d6de7f49e22cf97ad17fc4036ece69300032f45f78f30b4a4482cdc3f4a6"
 
 [[package]]
 name = "crossbeam-channel"
@@ -105,9 +95,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-epoch"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec0f606a85340376eef0d6d8fec399e6d4a544d648386c6645eb6d0653b27d9f"
+checksum = "a1aaa739f95311c2c7887a76863f500026092fb1dce0161dab577e559ef3569d"
 dependencies = [
  "cfg-if",
  "const_fn",
@@ -119,13 +109,12 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-utils"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec91540d98355f690a86367e566ecad2e9e579f230230eb7c21398372be73ea5"
+checksum = "02d96d1e189ef58269ebe5b97953da3274d83a93af647c2ddd6f9dab28cedb8d"
 dependencies = [
  "autocfg",
  "cfg-if",
- "const_fn",
  "lazy_static",
 ]
 
@@ -146,9 +135,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc6f3ad7b9d11a0c00842ff8de1b60ee58661048eb8049ed33c73594f359d7e6"
+checksum = "dd25036021b0de88a0aff6b850051563c6516d0bf53f8638938edbb9de732736"
 
 [[package]]
 name = "lazy_static"
@@ -158,15 +147,15 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.80"
+version = "0.2.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d58d1b70b004888f764dfbf6a26a3b0342a1632d33968e4a179d8011c760614"
+checksum = "1482821306169ec4d07f6aca392a4681f66c75c9918aa49641a2595db64053cb"
 
 [[package]]
 name = "memoffset"
-version = "0.5.6"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "043175f069eda7b85febe4a74abbaeff828d9f8b448515d3151a14a3542811aa"
+checksum = "157b4208e3059a8f9e78d559edc658e13df41410cb3ae03979c83130067fdd87"
 dependencies = [
  "autocfg",
 ]
@@ -192,9 +181,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.7"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
+checksum = "991431c3519a3f36861882da93630ce66b52918dcf1b8e2fd66b397fc96f28df"
 dependencies = [
  "proc-macro2",
 ]
@@ -240,22 +229,25 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 name = "screenshot"
 version = "0.1.0"
 dependencies = [
+ "bindings",
  "clap",
- "win32",
  "winrt",
 ]
 
 [[package]]
 name = "serde"
-version = "1.0.117"
+version = "1.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b88fa983de7720629c9387e9f517353ed404164b1e482c970a90c1a4aaf7dc1a"
+checksum = "06c64263859d87aa2eb554587e2d23183398d617427327cf2b3d0ed8c69e4800"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.117"
+version = "1.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbd1ae72adb44aab48f325a02444a5fc079349a8d804c1fc922aed3f7454c74e"
+checksum = "c84d3526699cd55261af4b941e4e725444df67aa4f9e6a3564f18030d12672df"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -264,9 +256,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.59"
+version = "1.0.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcac07dbffa1c65e7f816ab9eba78eb142c6d44410f4eeba1e26e4f5dfa56b95"
+checksum = "4fceb2595057b6891a4ee808f70054bd2d12f0e97f1cbb78689b59f676df325a"
 dependencies = [
  "itoa",
  "ryu",
@@ -293,9 +285,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "1.0.48"
+version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc371affeffc477f42a221a1e4297aedcea33d47d19b61455588bd9d8f6b19ac"
+checksum = "cc60a3d73ea6594cd712d830cc1f0390fd71542d8c8cd24e70cc54cdfd5e05d5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -309,35 +301,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
 dependencies = [
  "unicode-width",
-]
-
-[[package]]
-name = "thiserror"
-version = "1.0.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "318234ffa22e0920fe9a40d7b8369b5f649d490980cf7aadcf1eb91594869b42"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cae2447b6282786c3493999f40a9be2a6ad20cb8bd268b0a0dbf5a065535c0ab"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "toml"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75cf45bb0bef80604d001caaec0d09da99611b3c0fd39d3080468875cdb65645"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -357,23 +320,6 @@ name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
-
-[[package]]
-name = "win32"
-version = "0.1.0"
-source = "git+https://github.com/microsoft/win32-rs.git#7dc143ee72687f2a5f3a420202c36a95493e6d9c"
-dependencies = [
- "win32-gen",
-]
-
-[[package]]
-name = "win32-gen"
-version = "0.1.0"
-source = "git+https://github.com/microsoft/win32-rs.git#7dc143ee72687f2a5f3a420202c36a95493e6d9c"
-dependencies = [
- "squote",
- "winmd",
-]
 
 [[package]]
 name = "winapi"
@@ -399,18 +345,18 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "winmd"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "463cc556cfe827d918c903818fd07f96c802d14fa8174242c26863d33714ffdf"
+version = "0.8.0"
+source = "git+https://github.com/microsoft/winrt-rs.git#4a2915140799f250c96f85bd9aa91e41482a3fe4"
 dependencies = [
+ "serde",
+ "serde_json",
  "winmd-macros",
 ]
 
 [[package]]
 name = "winmd-macros"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3b40684a97b141cccb473d5575c855ff0bbeef6a28b48c59a0be255bed49e8c"
+version = "0.8.0"
+source = "git+https://github.com/microsoft/winrt-rs.git#4a2915140799f250c96f85bd9aa91e41482a3fe4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -419,29 +365,19 @@ dependencies = [
 
 [[package]]
 name = "winrt"
-version = "0.7.2"
-source = "git+https://github.com/microsoft/winrt-rs.git#1da36f73246f02fadba6c243b0dbc7f3ffa596b0"
+version = "0.8.0"
+source = "git+https://github.com/microsoft/winrt-rs.git#4a2915140799f250c96f85bd9aa91e41482a3fe4"
 dependencies = [
  "const-sha1",
  "winmd",
+ "winrt-gen",
  "winrt-macros",
 ]
 
 [[package]]
-name = "winrt-deps"
-version = "0.1.0"
-source = "git+https://github.com/microsoft/winrt-rs.git#1da36f73246f02fadba6c243b0dbc7f3ffa596b0"
-dependencies = [
- "anyhow",
- "cargo_toml",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "winrt-gen"
-version = "0.7.2"
-source = "git+https://github.com/microsoft/winrt-rs.git#1da36f73246f02fadba6c243b0dbc7f3ffa596b0"
+version = "0.8.0"
+source = "git+https://github.com/microsoft/winrt-rs.git#4a2915140799f250c96f85bd9aa91e41482a3fe4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -455,8 +391,8 @@ dependencies = [
 
 [[package]]
 name = "winrt-gen-macros"
-version = "0.7.2"
-source = "git+https://github.com/microsoft/winrt-rs.git#1da36f73246f02fadba6c243b0dbc7f3ffa596b0"
+version = "0.8.0"
+source = "git+https://github.com/microsoft/winrt-rs.git#4a2915140799f250c96f85bd9aa91e41482a3fe4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -465,17 +401,14 @@ dependencies = [
 
 [[package]]
 name = "winrt-macros"
-version = "0.7.2"
-source = "git+https://github.com/microsoft/winrt-rs.git#1da36f73246f02fadba6c243b0dbc7f3ffa596b0"
+version = "0.8.0"
+source = "git+https://github.com/microsoft/winrt-rs.git#4a2915140799f250c96f85bd9aa91e41482a3fe4"
 dependencies = [
- "cargo_toml",
  "proc-macro2",
  "quote",
  "rayon",
- "serde_json",
  "squote",
  "syn",
  "winmd",
- "winrt-deps",
  "winrt-gen",
 ]
