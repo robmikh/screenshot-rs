@@ -1,11 +1,12 @@
 use crate::dwmapi;
 use crate::user;
 use crate::window_info::WindowInfo;
+use bindings::windows::win32 as win32;
 
 pub fn enumerate_capturable_windows() -> Box<Vec<WindowInfo>> {
     unsafe {
         let windows = Box::into_raw(Box::new(Vec::<WindowInfo>::new()));
-        win32::EnumWindows(enum_window, windows as isize);
+        win32::EnumWindows(Some(enum_window), windows as isize);
         Box::from_raw(windows)
     }
 }

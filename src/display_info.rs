@@ -1,4 +1,5 @@
 const CCHDEVICENAME: usize = 32;
+use bindings::windows::win32 as win32;
 
 #[derive(Clone)]
 pub struct DisplayInfo {
@@ -55,7 +56,7 @@ impl DisplayInfo {
 pub fn enumerate_displays() -> Box<Vec<DisplayInfo>> {
     unsafe {
         let displays = Box::into_raw(Box::new(Vec::<DisplayInfo>::new()));
-        win32::EnumDisplayMonitors(0, std::ptr::null_mut(), enum_monitor, displays as isize);
+        win32::EnumDisplayMonitors(0, std::ptr::null_mut(), Some(enum_monitor), displays as isize);
         Box::from_raw(displays)
     }
 }
@@ -63,7 +64,7 @@ pub fn enumerate_displays() -> Box<Vec<DisplayInfo>> {
 extern "system" fn enum_monitor(
     monitor: isize,
     _: isize,
-    _: *mut win32::RECT,
+    _: win32::RECT_abi,
     state: isize,
 ) -> i32 {
     unsafe {

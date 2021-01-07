@@ -1,5 +1,3 @@
-winrt::include_bindings!();
-
 mod capture;
 mod display_info;
 mod dwmapi;
@@ -13,15 +11,16 @@ use display_info::enumerate_displays;
 use hresult::AsHresult;
 use std::io::Write;
 use std::sync::mpsc::channel;
-use win_rt_interop_tools::{
+use window_info::WindowInfo;
+use bindings::win_rt_interop_tools::{
     desktop::CaptureItemInterop, Direct3D11CpuAccessFlag, Direct3D11Device, Direct3D11Texture2D,
 };
-use window_info::WindowInfo;
-use windows::foundation::TypedEventHandler;
-use windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
-use windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
-use windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
-use windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
+use bindings::windows::foundation::TypedEventHandler;
+use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
+use bindings::windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
+use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
+use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
+use bindings::windows::win32 as win32;
 
 fn main() -> winrt::Result<()> {
     unsafe {
@@ -105,6 +104,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> winrt::Result<()> {
             let device = device.clone();
             let session = session.clone();
             move |frame_pool, _| {
+                let frame_pool = frame_pool.as_ref().unwrap();
                 let frame = frame_pool.try_get_next_frame()?;
                 let source_texture =
                     Direct3D11Texture2D::create_from_direct3d_surface(frame.surface()?)?;

@@ -5,7 +5,6 @@ fn main() {
             IsWindowVisible,
             GetAncestor,
             GetShellWindow,
-            GetWindowLongW,
             GetMonitorInfoW,
             EnumDisplayMonitors,
             MONITORINFO,
@@ -14,6 +13,10 @@ fn main() {
             GetDesktopWindow,
             GetWindowThreadProcessId,
             GetClassNameW,
+            MonitorFromWindow,
+            RoInitialize,
+            GetWindowTextW,
+            EnumWindows,
         }
         windows::ui::Colors
         windows::storage::{

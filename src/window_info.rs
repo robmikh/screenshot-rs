@@ -1,3 +1,5 @@
+use bindings::windows::win32 as win32;
+
 #[derive(Clone)]
 pub struct WindowInfo {
     pub handle: isize,
