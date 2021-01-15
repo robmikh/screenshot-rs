@@ -18,9 +18,16 @@ fn main() {
         windows::win32::backup::{
             RECT,
         }
-        windows::win32::win_rt::{
-            RO_INIT_TYPE,
-            RoInitialize,
+        // Doesn't link (see: https://github.com/microsoft/win32metadata/issues/92)
+        //windows::win32::win_rt::{
+        //    RO_INIT_TYPE,
+        //    RoInitialize,
+        //}
+        windows::win32::com::{
+            CoInitializeEx,
+        }
+        windows::win32::stg::{
+            COINIT,
         }
         windows::ui::{
             Colors,

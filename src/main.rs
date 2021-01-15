@@ -20,12 +20,17 @@ use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsC
 use bindings::windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
 use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use bindings::windows::win32::winrt::{RO_INIT_TYPE, RoInitialize};
+//use bindings::windows::win32::winrt::{RO_INIT_TYPE, RoInitialize};
 use bindings::windows::win32::menu_rc::{GetWindowThreadProcessId, GetDesktopWindow, MonitorFromWindow};
+use bindings::windows::win32::stg::COINIT;
+use bindings::windows::win32::com::CoInitializeEx;
 
 fn main() -> winrt::Result<()> {
     unsafe {
-        RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
+        //RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
+        // COINIT::COINIT_MULTITHREADED.0 as u32 doesn't work since it's a private field
+        // COINIT_MULTITHREADED == 0
+        CoInitializeEx(std::ptr::null_mut() , 0).as_hresult()?;
     }
 
     // TODO: Make input optional for window and monitor (prompt)
