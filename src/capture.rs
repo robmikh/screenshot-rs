@@ -1,7 +1,11 @@
 use crate::window_info::WindowInfo;
-use bindings::windows::win32::menu_rc::{EnumWindows, GetWindowLongW, GetAncestor, IsWindowVisible, GetShellWindow};
-use bindings::windows::win32::base::{WS_EX_TOOLWINDOW, GWL_STYLE, WS_DISABLED, GWL_EXSTYLE, GA_ROOT};
-use bindings::windows::win32::dwm::{DWMWINDOWATTRIBUTE, DwmGetWindowAttribute};
+use bindings::windows::win32::base::{
+    GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
+};
+use bindings::windows::win32::dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
+use bindings::windows::win32::menu_rc::{
+    EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible,
+};
 
 pub fn enumerate_capturable_windows() -> Box<Vec<WindowInfo>> {
     unsafe {
@@ -56,7 +60,7 @@ impl CaptureWindowCandidate for WindowInfo {
                 let mut cloaked: u32 = 0;
                 if DwmGetWindowAttribute(
                     self.handle,
-                    std::mem::transmute::<_ , u32>(DWMWINDOWATTRIBUTE::DWMWA_CLOAKED),
+                    std::mem::transmute::<_, u32>(DWMWINDOWATTRIBUTE::DWMWA_CLOAKED),
                     &mut cloaked as *mut _ as *mut _,
                     std::mem::size_of::<u32>() as u32,
                 ) == 0

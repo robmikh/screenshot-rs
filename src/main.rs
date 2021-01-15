@@ -3,13 +3,6 @@ mod display_info;
 mod hresult;
 mod window_info;
 
-use capture::enumerate_capturable_windows;
-use clap::{value_t, App, Arg};
-use display_info::enumerate_displays;
-use hresult::AsHresult;
-use std::io::Write;
-use std::sync::mpsc::channel;
-use window_info::WindowInfo;
 use bindings::win_rt_interop_tools::{
     desktop::CaptureItemInterop, Direct3D11CpuAccessFlag, Direct3D11Device, Direct3D11Texture2D,
 };
@@ -18,16 +11,29 @@ use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsC
 use bindings::windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
 use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
+use capture::enumerate_capturable_windows;
+use clap::{value_t, App, Arg};
+use display_info::enumerate_displays;
+use hresult::AsHresult;
+use std::io::Write;
+use std::sync::mpsc::channel;
+use window_info::WindowInfo;
 //use bindings::windows::win32::winrt::{RO_INIT_TYPE, RoInitialize};
-use bindings::windows::win32::menu_rc::{GetWindowThreadProcessId, GetDesktopWindow, MonitorFromWindow};
-use bindings::windows::win32::stg::COINIT;
+use bindings::windows::win32::base::MONITOR_DEFAULTTOPRIMARY;
 use bindings::windows::win32::com::CoInitializeEx;
-use bindings::windows::win32::base::{MONITOR_DEFAULTTOPRIMARY};
+use bindings::windows::win32::menu_rc::{
+    GetDesktopWindow, GetWindowThreadProcessId, MonitorFromWindow,
+};
+use bindings::windows::win32::stg::COINIT;
 
 fn main() -> winrt::Result<()> {
     unsafe {
         //RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
-        CoInitializeEx(std::ptr::null_mut(), std::mem::transmute::<_ , u32>(COINIT::COINIT_MULTITHREADED)).as_hresult()?;
+        CoInitializeEx(
+            std::ptr::null_mut(),
+            std::mem::transmute::<_, u32>(COINIT::COINIT_MULTITHREADED),
+        )
+        .as_hresult()?;
     }
 
     // TODO: Make input optional for window and monitor (prompt)
@@ -76,9 +82,8 @@ fn main() -> winrt::Result<()> {
         let display = &displays[index];
         CaptureItemInterop::create_for_monitor(display.handle as u64)?
     } else if matches.is_present("primary") {
-        let monitor_handle = unsafe {
-            MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY as u32)
-        };
+        let monitor_handle =
+            unsafe { MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY as u32) };
         CaptureItemInterop::create_for_monitor(monitor_handle as u64)?
     } else {
         std::process::exit(0);

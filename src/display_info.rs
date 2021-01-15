@@ -1,6 +1,6 @@
 const CCHDEVICENAME: usize = 32;
-use bindings::windows::win32::menu_rc::{MONITORINFO, GetMonitorInfoW, EnumDisplayMonitors};
 use bindings::windows::win32::backup::RECT;
+use bindings::windows::win32::menu_rc::{EnumDisplayMonitors, GetMonitorInfoW, MONITORINFO};
 
 #[derive(Clone)]
 pub struct DisplayInfo {
@@ -57,17 +57,17 @@ impl DisplayInfo {
 pub fn enumerate_displays() -> Box<Vec<DisplayInfo>> {
     unsafe {
         let displays = Box::into_raw(Box::new(Vec::<DisplayInfo>::new()));
-        EnumDisplayMonitors(0, std::ptr::null_mut(), Some(enum_monitor), displays as isize);
+        EnumDisplayMonitors(
+            0,
+            std::ptr::null_mut(),
+            Some(enum_monitor),
+            displays as isize,
+        );
         Box::from_raw(displays)
     }
 }
 
-extern "system" fn enum_monitor(
-    monitor: isize,
-    _: isize,
-    _: *mut RECT,
-    state: isize,
-) -> i32 {
+extern "system" fn enum_monitor(monitor: isize, _: isize, _: *mut RECT, state: isize) -> i32 {
     unsafe {
         let state = Box::leak(Box::from_raw(state as *mut Vec<DisplayInfo>));
 
