@@ -1,7 +1,7 @@
-use crate::dwmapi;
-use crate::user;
 use crate::window_info::WindowInfo;
 use bindings::windows::win32::menu_rc::{EnumWindows, GetWindowLongW, GetAncestor, IsWindowVisible, GetShellWindow};
+use bindings::windows::win32::base::{WS_EX_TOOLWINDOW, GWL_STYLE, WS_DISABLED, GWL_EXSTYLE, GA_ROOT};
+use bindings::windows::win32::dwm::{DWMWINDOWATTRIBUTE, DwmGetWindowAttribute};
 
 pub fn enumerate_capturable_windows() -> Box<Vec<WindowInfo>> {
     unsafe {
@@ -33,19 +33,19 @@ impl CaptureWindowCandidate for WindowInfo {
             if self.title.is_empty()
                 || self.handle == GetShellWindow()
                 || IsWindowVisible(self.handle) == 0
-                || GetAncestor(self.handle, user::GA_ROOT) != self.handle
+                || GetAncestor(self.handle, GA_ROOT as u32) != self.handle
             {
                 return false;
             }
 
-            let style = GetWindowLongW(self.handle, user::GWL_STYLE);
-            if style & user::WS_DISABLED == 1 {
+            let style = GetWindowLongW(self.handle, GWL_STYLE);
+            if style & (WS_DISABLED as i32) == 1 {
                 return false;
             }
 
             // No tooltips
-            let ex_style = GetWindowLongW(self.handle, user::GWL_EXSTYLE);
-            if ex_style & user::WS_EX_TOOLWINDOW == 1 {
+            let ex_style = GetWindowLongW(self.handle, GWL_EXSTYLE);
+            if ex_style & WS_EX_TOOLWINDOW == 1 {
                 return false;
             }
 
@@ -54,13 +54,13 @@ impl CaptureWindowCandidate for WindowInfo {
                 || self.class_name == "ApplicationFrameWindow"
             {
                 let mut cloaked: u32 = 0;
-                if dwmapi::DwmGetWindowAttribute(
+                if DwmGetWindowAttribute(
                     self.handle,
-                    dwmapi::DWMWA_CLOAKED,
+                    std::mem::transmute::<_ , u32>(DWMWINDOWATTRIBUTE::DWMWA_CLOAKED),
                     &mut cloaked as *mut _ as *mut _,
                     std::mem::size_of::<u32>() as u32,
                 ) == 0
-                    && cloaked == dwmapi::DWM_CLOAKED_SHELL
+                    && cloaked == /* DWM_CLOAKED_SHELL is missing... */ 0x0000002
                 {
                     return false;
                 }

@@ -15,6 +15,18 @@ fn main() {
             GetWindowTextW,
             EnumWindows,
         }
+        windows::win32::base::{
+            GA_ROOT,
+            GWL_STYLE,
+            GWL_EXSTYLE,
+            WS_DISABLED,
+            WS_EX_TOOLWINDOW,
+            MONITOR_DEFAULTTOPRIMARY,
+        }
+        windows::win32::dwm::{
+            DWMWINDOWATTRIBUTE,
+            DwmGetWindowAttribute,
+        }
         windows::win32::backup::{
             RECT,
         }

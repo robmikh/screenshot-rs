@@ -1,8 +1,6 @@
 mod capture;
 mod display_info;
-mod dwmapi;
 mod hresult;
-mod user;
 mod window_info;
 
 use capture::enumerate_capturable_windows;
@@ -24,13 +22,12 @@ use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, Storag
 use bindings::windows::win32::menu_rc::{GetWindowThreadProcessId, GetDesktopWindow, MonitorFromWindow};
 use bindings::windows::win32::stg::COINIT;
 use bindings::windows::win32::com::CoInitializeEx;
+use bindings::windows::win32::base::{MONITOR_DEFAULTTOPRIMARY};
 
 fn main() -> winrt::Result<()> {
     unsafe {
         //RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
-        // COINIT::COINIT_MULTITHREADED.0 as u32 doesn't work since it's a private field
-        // COINIT_MULTITHREADED == 0
-        CoInitializeEx(std::ptr::null_mut() , 0).as_hresult()?;
+        CoInitializeEx(std::ptr::null_mut(), std::mem::transmute::<_ , u32>(COINIT::COINIT_MULTITHREADED)).as_hresult()?;
     }
 
     // TODO: Make input optional for window and monitor (prompt)
@@ -80,7 +77,7 @@ fn main() -> winrt::Result<()> {
         CaptureItemInterop::create_for_monitor(display.handle as u64)?
     } else if matches.is_present("primary") {
         let monitor_handle = unsafe {
-            MonitorFromWindow(GetDesktopWindow(), user::MONITOR_DEFAULTTOPRIMARY)
+            MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY as u32)
         };
         CaptureItemInterop::create_for_monitor(monitor_handle as u64)?
     } else {
