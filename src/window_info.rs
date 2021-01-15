@@ -1,4 +1,4 @@
-use bindings::windows::win32 as win32;
+use bindings::windows::win32::menu_rc::{GetClassNameW, GetWindowTextW};
 
 #[derive(Clone)]
 pub struct WindowInfo {
@@ -12,12 +12,12 @@ impl WindowInfo {
     pub fn new(window_handle: isize) -> Self {
         unsafe {
             let mut title = [0u16; 512];
-            win32::GetWindowTextW(window_handle, title.as_mut_ptr(), title.len() as i32);
+            GetWindowTextW(window_handle, title.as_mut_ptr(), title.len() as i32);
             let mut title = String::from_utf16_lossy(&title);
             truncate_to_first_null_char(&mut title);
 
             let mut class_name = [0u16; 512];
-            win32::GetClassNameW(
+            GetClassNameW(
                 window_handle,
                 class_name.as_mut_ptr(),
                 class_name.len() as i32,

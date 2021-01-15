@@ -1,5 +1,6 @@
 const CCHDEVICENAME: usize = 32;
-use bindings::windows::win32 as win32;
+use bindings::windows::win32::menu_rc::{MONITORINFO, GetMonitorInfoW, EnumDisplayMonitors};
+use bindings::windows::win32::backup::RECT;
 
 #[derive(Clone)]
 pub struct DisplayInfo {
@@ -11,20 +12,20 @@ impl DisplayInfo {
     pub fn new(monitor_handle: isize) -> Self {
         #[repr(C)]
         struct MonitorInfoExW {
-            _base: win32::MONITORINFO,
+            _base: MONITORINFO,
             sz_device: [u16; CCHDEVICENAME],
         }
 
         let mut info = MonitorInfoExW {
-            _base: win32::MONITORINFO {
+            _base: MONITORINFO {
                 cbSize: std::mem::size_of::<MonitorInfoExW>() as u32,
-                rcMonitor: win32::RECT {
+                rcMonitor: RECT {
                     left: 0,
                     top: 0,
                     right: 0,
                     bottom: 0,
                 },
-                rcWork: win32::RECT {
+                rcWork: RECT {
                     left: 0,
                     top: 0,
                     right: 0,
@@ -36,7 +37,7 @@ impl DisplayInfo {
         };
 
         unsafe {
-            let result = win32::GetMonitorInfoW(monitor_handle, &mut info as *mut _ as *mut _);
+            let result = GetMonitorInfoW(monitor_handle, &mut info as *mut _ as *mut _);
             if result == 0 {
                 panic!("GetMonitorInfoW failed!");
             }
@@ -56,7 +57,7 @@ impl DisplayInfo {
 pub fn enumerate_displays() -> Box<Vec<DisplayInfo>> {
     unsafe {
         let displays = Box::into_raw(Box::new(Vec::<DisplayInfo>::new()));
-        win32::EnumDisplayMonitors(0, std::ptr::null_mut(), Some(enum_monitor), displays as isize);
+        EnumDisplayMonitors(0, std::ptr::null_mut(), Some(enum_monitor), displays as isize);
         Box::from_raw(displays)
     }
 }
@@ -64,7 +65,7 @@ pub fn enumerate_displays() -> Box<Vec<DisplayInfo>> {
 extern "system" fn enum_monitor(
     monitor: isize,
     _: isize,
-    _: win32::RECT_abi,
+    _: *mut RECT,
     state: isize,
 ) -> i32 {
     unsafe {

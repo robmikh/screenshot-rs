@@ -1,12 +1,12 @@
 use crate::dwmapi;
 use crate::user;
 use crate::window_info::WindowInfo;
-use bindings::windows::win32 as win32;
+use bindings::windows::win32::menu_rc::{EnumWindows, GetWindowLongW, GetAncestor, IsWindowVisible, GetShellWindow};
 
 pub fn enumerate_capturable_windows() -> Box<Vec<WindowInfo>> {
     unsafe {
         let windows = Box::into_raw(Box::new(Vec::<WindowInfo>::new()));
-        win32::EnumWindows(Some(enum_window), windows as isize);
+        EnumWindows(Some(enum_window), windows as isize);
         Box::from_raw(windows)
     }
 }
@@ -31,20 +31,20 @@ impl CaptureWindowCandidate for WindowInfo {
     fn is_capturable_window(&self) -> bool {
         unsafe {
             if self.title.is_empty()
-                || self.handle == win32::GetShellWindow()
-                || win32::IsWindowVisible(self.handle) == 0
-                || win32::GetAncestor(self.handle, user::GA_ROOT) != self.handle
+                || self.handle == GetShellWindow()
+                || IsWindowVisible(self.handle) == 0
+                || GetAncestor(self.handle, user::GA_ROOT) != self.handle
             {
                 return false;
             }
 
-            let style = win32::GetWindowLongW(self.handle, user::GWL_STYLE);
+            let style = GetWindowLongW(self.handle, user::GWL_STYLE);
             if style & user::WS_DISABLED == 1 {
                 return false;
             }
 
             // No tooltips
-            let ex_style = win32::GetWindowLongW(self.handle, user::GWL_EXSTYLE);
+            let ex_style = GetWindowLongW(self.handle, user::GWL_EXSTYLE);
             if ex_style & user::WS_EX_TOOLWINDOW == 1 {
                 return false;
             }

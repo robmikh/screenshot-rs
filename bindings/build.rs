@@ -1,24 +1,30 @@
 fn main() {
     winrt::build!(
-        windows::win32::{
+        windows::win32::menu_rc::{
+            MONITORINFO,
             GetWindowLongW,
             IsWindowVisible,
             GetAncestor,
             GetShellWindow,
             GetMonitorInfoW,
             EnumDisplayMonitors,
-            MONITORINFO,
-            RECT,
-            RO_INIT_TYPE,
             GetDesktopWindow,
             GetWindowThreadProcessId,
             GetClassNameW,
             MonitorFromWindow,
-            RoInitialize,
             GetWindowTextW,
             EnumWindows,
         }
-        windows::ui::Colors
+        windows::win32::backup::{
+            RECT,
+        }
+        windows::win32::win_rt::{
+            RO_INIT_TYPE,
+            RoInitialize,
+        }
+        windows::ui::{
+            Colors,
+        }
         windows::storage::{
             StorageFolder,
             StorageFile,

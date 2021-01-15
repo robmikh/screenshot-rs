@@ -20,11 +20,12 @@ use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsC
 use bindings::windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
 use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use bindings::windows::win32 as win32;
+use bindings::windows::win32::winrt::{RO_INIT_TYPE, RoInitialize};
+use bindings::windows::win32::menu_rc::{GetWindowThreadProcessId, GetDesktopWindow, MonitorFromWindow};
 
 fn main() -> winrt::Result<()> {
     unsafe {
-        win32::RoInitialize(win32::RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
+        RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
     }
 
     // TODO: Make input optional for window and monitor (prompt)
@@ -74,7 +75,7 @@ fn main() -> winrt::Result<()> {
         CaptureItemInterop::create_for_monitor(display.handle as u64)?
     } else if matches.is_present("primary") {
         let monitor_handle = unsafe {
-            win32::MonitorFromWindow(win32::GetDesktopWindow(), user::MONITOR_DEFAULTTOPRIMARY)
+            MonitorFromWindow(GetDesktopWindow(), user::MONITOR_DEFAULTTOPRIMARY)
         };
         CaptureItemInterop::create_for_monitor(monitor_handle as u64)?
     } else {
@@ -179,7 +180,7 @@ fn get_window_from_query(query: &str) -> winrt::Result<WindowInfo> {
         println!("    Num       PID    Window Title");
         for (i, window) in windows.iter().enumerate() {
             let mut pid = 0;
-            unsafe { win32::GetWindowThreadProcessId(window.handle, &mut pid).as_hresult()? };
+            unsafe { GetWindowThreadProcessId(window.handle, &mut pid).as_hresult()? };
             println!("    {:>3}    {:>6}    {}", i, pid, window.title);
         }
         let index: usize;
