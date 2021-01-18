@@ -1,6 +1,6 @@
 use crate::window_info::WindowInfo;
 use bindings::windows::win32::base::{
-    GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
+    BOOL, GA_ROOT, GWL_EXSTYLE, GWL_STYLE, HWND, LPARAM, WS_DISABLED, WS_EX_TOOLWINDOW,
 };
 use bindings::windows::win32::dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
 use bindings::windows::win32::menu_rc::{
@@ -10,21 +10,21 @@ use bindings::windows::win32::menu_rc::{
 pub fn enumerate_capturable_windows() -> Box<Vec<WindowInfo>> {
     unsafe {
         let windows = Box::into_raw(Box::new(Vec::<WindowInfo>::new()));
-        EnumWindows(Some(enum_window), windows as isize);
+        EnumWindows(Some(enum_window), LPARAM(windows as isize));
         Box::from_raw(windows)
     }
 }
 
-extern "system" fn enum_window(window: isize, state: isize) -> i32 {
+extern "system" fn enum_window(window: HWND, state: LPARAM) -> BOOL {
     unsafe {
-        let state = Box::leak(Box::from_raw(state as *mut Vec<WindowInfo>));
+        let state = Box::leak(Box::from_raw(state.0 as *mut Vec<WindowInfo>));
 
         let window_info = WindowInfo::new(window);
         if window_info.is_capturable_window() {
             state.push(window_info);
         }
     }
-    1
+    true.into()
 }
 
 pub trait CaptureWindowCandidate {
@@ -36,7 +36,7 @@ impl CaptureWindowCandidate for WindowInfo {
         unsafe {
             if self.title.is_empty()
                 || self.handle == GetShellWindow()
-                || IsWindowVisible(self.handle) == 0
+                || IsWindowVisible(self.handle) == false.into()
                 || GetAncestor(self.handle, GA_ROOT as u32) != self.handle
             {
                 return false;
@@ -63,7 +63,8 @@ impl CaptureWindowCandidate for WindowInfo {
                     std::mem::transmute::<_, u32>(DWMWINDOWATTRIBUTE::DWMWA_CLOAKED),
                     &mut cloaked as *mut _ as *mut _,
                     std::mem::size_of::<u32>() as u32,
-                ) == 0
+                )
+                .is_ok()
                     && cloaked == /* DWM_CLOAKED_SHELL is missing... */ 0x0000002
                 {
                     return false;

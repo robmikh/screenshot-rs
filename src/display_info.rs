@@ -1,5 +1,8 @@
 const CCHDEVICENAME: usize = 32;
 use bindings::windows::win32::backup::RECT;
+use bindings::windows::win32::base::BOOL;
+use bindings::windows::win32::base::LPARAM;
+use bindings::windows::win32::gdi::HDC;
 use bindings::windows::win32::menu_rc::{EnumDisplayMonitors, GetMonitorInfoW, MONITORINFO};
 
 #[derive(Clone)]
@@ -18,27 +21,27 @@ impl DisplayInfo {
 
         let mut info = MonitorInfoExW {
             _base: MONITORINFO {
-                cbSize: std::mem::size_of::<MonitorInfoExW>() as u32,
-                rcMonitor: RECT {
+                cb_size: std::mem::size_of::<MonitorInfoExW>() as u32,
+                rc_monitor: RECT {
                     left: 0,
                     top: 0,
                     right: 0,
                     bottom: 0,
                 },
-                rcWork: RECT {
+                rc_work: RECT {
                     left: 0,
                     top: 0,
                     right: 0,
                     bottom: 0,
                 },
-                dwFlags: 0,
+                dw_flags: 0,
             },
             sz_device: [0u16; CCHDEVICENAME],
         };
 
         unsafe {
             let result = GetMonitorInfoW(monitor_handle, &mut info as *mut _ as *mut _);
-            if result == 0 {
+            if result == false.into() {
                 panic!("GetMonitorInfoW failed!");
             }
         }
@@ -58,21 +61,21 @@ pub fn enumerate_displays() -> Box<Vec<DisplayInfo>> {
     unsafe {
         let displays = Box::into_raw(Box::new(Vec::<DisplayInfo>::new()));
         EnumDisplayMonitors(
-            0,
+            HDC(0),
             std::ptr::null_mut(),
             Some(enum_monitor),
-            displays as isize,
+            LPARAM(displays as isize),
         );
         Box::from_raw(displays)
     }
 }
 
-extern "system" fn enum_monitor(monitor: isize, _: isize, _: *mut RECT, state: isize) -> i32 {
+extern "system" fn enum_monitor(monitor: isize, _: HDC, _: *mut RECT, state: LPARAM) -> BOOL {
     unsafe {
-        let state = Box::leak(Box::from_raw(state as *mut Vec<DisplayInfo>));
+        let state = Box::leak(Box::from_raw(state.0 as *mut Vec<DisplayInfo>));
 
         let display_info = DisplayInfo::new(monitor);
         state.push(display_info);
     }
-    1
+    true.into()
 }

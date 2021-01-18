@@ -1,15 +1,16 @@
+use bindings::windows::win32::base::HWND;
 use bindings::windows::win32::menu_rc::{GetClassNameW, GetWindowTextW};
 
 #[derive(Clone)]
 pub struct WindowInfo {
-    pub handle: isize,
+    pub handle: HWND,
     pub title: String,
     pub class_name: String,
 }
 
 impl WindowInfo {
     // TODO: Return result?
-    pub fn new(window_handle: isize) -> Self {
+    pub fn new(window_handle: HWND) -> Self {
         unsafe {
             let mut title = [0u16; 512];
             GetWindowTextW(window_handle, title.as_mut_ptr(), title.len() as i32);

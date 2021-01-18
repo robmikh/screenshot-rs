@@ -1,5 +1,5 @@
 fn main() {
-    winrt::build!(
+    windows::build!(
         windows::win32::menu_rc::{
             MONITORINFO,
             GetWindowLongW,
@@ -30,16 +30,9 @@ fn main() {
         windows::win32::backup::{
             RECT,
         }
-        // Doesn't link (see: https://github.com/microsoft/win32metadata/issues/92)
-        //windows::win32::win_rt::{
-        //    RO_INIT_TYPE,
-        //    RoInitialize,
-        //}
-        windows::win32::com::{
-            CoInitializeEx,
-        }
-        windows::win32::stg::{
-            COINIT,
+        windows::win32::winrt::{
+           RO_INIT_TYPE,
+           RoInitialize,
         }
         windows::ui::{
             Colors,
@@ -77,6 +70,6 @@ fn main() {
         }
         win_rt_interop_tools::desktop::{
             CaptureItemInterop
-        }  
+        }
     );
 }
