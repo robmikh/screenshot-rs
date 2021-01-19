@@ -30,7 +30,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 name = "bindings"
 version = "0.1.0"
 dependencies = [
- "winrt",
+ "windows",
 ]
 
 [[package]]
@@ -231,7 +231,7 @@ version = "0.1.0"
 dependencies = [
  "bindings",
  "clap",
- "winrt",
+ "windows",
 ]
 
 [[package]]
@@ -344,40 +344,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
-name = "winmd"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/winrt-rs.git#e65b14ddb4ed988c2a2829a0fd6b7b1e549947ef"
-dependencies = [
- "serde",
- "serde_json",
- "winmd-macros",
-]
-
-[[package]]
-name = "winmd-macros"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/winrt-rs.git#e65b14ddb4ed988c2a2829a0fd6b7b1e549947ef"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "winrt"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/winrt-rs.git#e65b14ddb4ed988c2a2829a0fd6b7b1e549947ef"
+name = "windows"
+version = "0.1.4"
+source = "git+https://github.com/microsoft/windows-rs#0227a507d5c5c8d2c07576a73efd0cf6ce6392cd"
 dependencies = [
  "const-sha1",
- "winmd",
- "winrt-gen",
- "winrt-macros",
+ "windows_gen",
+ "windows_macros",
+ "windows_winmd",
 ]
 
 [[package]]
-name = "winrt-gen"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/winrt-rs.git#e65b14ddb4ed988c2a2829a0fd6b7b1e549947ef"
+name = "windows_gen"
+version = "0.1.4"
+source = "git+https://github.com/microsoft/windows-rs#0227a507d5c5c8d2c07576a73efd0cf6ce6392cd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -385,14 +365,14 @@ dependencies = [
  "sha1",
  "squote",
  "syn",
- "winmd",
- "winrt-gen-macros",
+ "windows_gen_macros",
+ "windows_winmd",
 ]
 
 [[package]]
-name = "winrt-gen-macros"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/winrt-rs.git#e65b14ddb4ed988c2a2829a0fd6b7b1e549947ef"
+name = "windows_gen_macros"
+version = "0.1.4"
+source = "git+https://github.com/microsoft/windows-rs#0227a507d5c5c8d2c07576a73efd0cf6ce6392cd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -400,15 +380,35 @@ dependencies = [
 ]
 
 [[package]]
-name = "winrt-macros"
-version = "0.8.0"
-source = "git+https://github.com/microsoft/winrt-rs.git#e65b14ddb4ed988c2a2829a0fd6b7b1e549947ef"
+name = "windows_macros"
+version = "0.1.4"
+source = "git+https://github.com/microsoft/windows-rs#0227a507d5c5c8d2c07576a73efd0cf6ce6392cd"
 dependencies = [
  "proc-macro2",
  "quote",
  "rayon",
  "squote",
  "syn",
- "winmd",
- "winrt-gen",
+ "windows_gen",
+ "windows_winmd",
+]
+
+[[package]]
+name = "windows_winmd"
+version = "0.1.4"
+source = "git+https://github.com/microsoft/windows-rs#0227a507d5c5c8d2c07576a73efd0cf6ce6392cd"
+dependencies = [
+ "serde",
+ "serde_json",
+ "windows_winmd_macros",
+]
+
+[[package]]
+name = "windows_winmd_macros"
+version = "0.1.4"
+source = "git+https://github.com/microsoft/windows-rs#0227a507d5c5c8d2c07576a73efd0cf6ce6392cd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]

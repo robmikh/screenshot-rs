@@ -1,6 +1,5 @@
 mod capture;
 mod display_info;
-mod hresult;
 mod window_info;
 
 use bindings::win_rt_interop_tools::{
@@ -11,29 +10,21 @@ use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsC
 use bindings::windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
 use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use capture::enumerate_capturable_windows;
-use clap::{value_t, App, Arg};
-use display_info::enumerate_displays;
-use hresult::AsHresult;
-use std::io::Write;
-use std::sync::mpsc::channel;
-use window_info::WindowInfo;
-//use bindings::windows::win32::winrt::{RO_INIT_TYPE, RoInitialize};
 use bindings::windows::win32::base::MONITOR_DEFAULTTOPRIMARY;
-use bindings::windows::win32::com::CoInitializeEx;
 use bindings::windows::win32::menu_rc::{
     GetDesktopWindow, GetWindowThreadProcessId, MonitorFromWindow,
 };
-use bindings::windows::win32::stg::COINIT;
+use bindings::windows::win32::winrt::{RoInitialize, RO_INIT_TYPE};
+use capture::enumerate_capturable_windows;
+use clap::{value_t, App, Arg};
+use display_info::enumerate_displays;
+use std::io::Write;
+use std::sync::mpsc::channel;
+use window_info::WindowInfo;
 
-fn main() -> winrt::Result<()> {
+fn main() -> windows::Result<()> {
     unsafe {
-        //RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).as_hresult()?;
-        CoInitializeEx(
-            std::ptr::null_mut(),
-            std::mem::transmute::<_, u32>(COINIT::COINIT_MULTITHREADED),
-        )
-        .as_hresult()?;
+        RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).ok()?;
     }
 
     // TODO: Make input optional for window and monitor (prompt)
@@ -66,7 +57,7 @@ fn main() -> winrt::Result<()> {
     let item = if matches.is_present("window") {
         let query = matches.value_of("window").unwrap();
         let window = get_window_from_query(query)?;
-        CaptureItemInterop::create_for_window(window.handle as u64)?
+        CaptureItemInterop::create_for_window(window.handle.0 as u64)?
     } else if matches.is_present("monitor") {
         let id = value_t!(matches, "monitor", usize).unwrap();
         let displays = enumerate_displays();
@@ -94,7 +85,7 @@ fn main() -> winrt::Result<()> {
     Ok(())
 }
 
-fn take_screenshot(item: &GraphicsCaptureItem) -> winrt::Result<()> {
+fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
     let item_size = item.size()?;
 
     let device = Direct3D11Device::new()?;
@@ -107,36 +98,37 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> winrt::Result<()> {
     let session = frame_pool.create_capture_session(item)?;
 
     let (sender, receiver) = channel();
-    frame_pool.frame_arrived(
-        TypedEventHandler::<Direct3D11CaptureFramePool, winrt::Object>::new({
-            let device = device.clone();
-            let session = session.clone();
-            move |frame_pool, _| {
-                let frame_pool = frame_pool.as_ref().unwrap();
-                let frame = frame_pool.try_get_next_frame()?;
-                let source_texture =
-                    Direct3D11Texture2D::create_from_direct3d_surface(frame.surface()?)?;
-                let mut desc = source_texture.description2d()?;
-                desc.usage = Direct3DUsage::Staging;
-                desc.cpu_access_flags = Direct3D11CpuAccessFlag::AccessRead;
-                unsafe {
-                    use std::mem::transmute;
-                    desc.bind_flags = transmute(0);
-                    desc.misc_flags = transmute(0);
-                }
-                let copy_texture = device.create_texture2d(desc)?;
-
-                let context = device.immediate_context()?;
-                context.copy_resource(&copy_texture, source_texture)?;
-
-                session.close()?;
-                frame_pool.close()?;
-
-                sender.send(copy_texture).unwrap();
-                Ok(())
+    frame_pool.frame_arrived(TypedEventHandler::<
+        Direct3D11CaptureFramePool,
+        windows::Object,
+    >::new({
+        let device = device.clone();
+        let session = session.clone();
+        move |frame_pool, _| {
+            let frame_pool = frame_pool.as_ref().unwrap();
+            let frame = frame_pool.try_get_next_frame()?;
+            let source_texture =
+                Direct3D11Texture2D::create_from_direct3d_surface(frame.surface()?)?;
+            let mut desc = source_texture.description2d()?;
+            desc.usage = Direct3DUsage::Staging;
+            desc.cpu_access_flags = Direct3D11CpuAccessFlag::AccessRead;
+            unsafe {
+                use std::mem::transmute;
+                desc.bind_flags = transmute(0);
+                desc.misc_flags = transmute(0);
             }
-        }),
-    )?;
+            let copy_texture = device.create_texture2d(desc)?;
+
+            let context = device.immediate_context()?;
+            context.copy_resource(&copy_texture, source_texture)?;
+
+            session.close()?;
+            frame_pool.close()?;
+
+            sender.send(copy_texture).unwrap();
+            Ok(())
+        }
+    }))?;
     session.start_capture()?;
 
     let texture = receiver.recv().unwrap();
@@ -171,7 +163,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> winrt::Result<()> {
     Ok(())
 }
 
-fn get_window_from_query(query: &str) -> winrt::Result<WindowInfo> {
+fn get_window_from_query(query: &str) -> windows::Result<WindowInfo> {
     let windows = find_window(query);
     let window = if windows.len() == 0 {
         println!("No window matching '{}' found!", query);
@@ -187,7 +179,7 @@ fn get_window_from_query(query: &str) -> winrt::Result<WindowInfo> {
         println!("    Num       PID    Window Title");
         for (i, window) in windows.iter().enumerate() {
             let mut pid = 0;
-            unsafe { GetWindowThreadProcessId(window.handle, &mut pid).as_hresult()? };
+            unsafe { GetWindowThreadProcessId(window.handle, &mut pid) };
             println!("    {:>3}    {:>6}    {}", i, pid, window.title);
         }
         let index: usize;
