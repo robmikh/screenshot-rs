@@ -346,6 +346,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "windows"
 version = "0.2.1"
+source = "git+https://github.com/microsoft/windows-rs#c3a21d19551519c5757a898975c37fb8c0e00f63"
 dependencies = [
  "const-sha1",
  "windows_gen",
@@ -356,6 +357,7 @@ dependencies = [
 [[package]]
 name = "windows_gen"
 version = "0.2.1"
+source = "git+https://github.com/microsoft/windows-rs#c3a21d19551519c5757a898975c37fb8c0e00f63"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -370,6 +372,7 @@ dependencies = [
 [[package]]
 name = "windows_gen_macros"
 version = "0.2.1"
+source = "git+https://github.com/microsoft/windows-rs#c3a21d19551519c5757a898975c37fb8c0e00f63"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -379,6 +382,7 @@ dependencies = [
 [[package]]
 name = "windows_macros"
 version = "0.2.1"
+source = "git+https://github.com/microsoft/windows-rs#c3a21d19551519c5757a898975c37fb8c0e00f63"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -392,6 +396,7 @@ dependencies = [
 [[package]]
 name = "windows_winmd"
 version = "0.2.1"
+source = "git+https://github.com/microsoft/windows-rs#c3a21d19551519c5757a898975c37fb8c0e00f63"
 dependencies = [
  "serde",
  "serde_json",
@@ -401,6 +406,7 @@ dependencies = [
 [[package]]
 name = "windows_winmd_macros"
 version = "0.2.1"
+source = "git+https://github.com/microsoft/windows-rs#c3a21d19551519c5757a898975c37fb8c0e00f63"
 dependencies = [
  "proc-macro2",
  "quote",

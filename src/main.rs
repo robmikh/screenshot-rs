@@ -35,8 +35,7 @@ use std::sync::mpsc::channel;
 use window_info::WindowInfo;
 
 fn create_capture_item_for_window(window_handle: HWND) -> windows::Result<GraphicsCaptureItem> {
-    let factory = windows::get_activation_factory::<GraphicsCaptureItem>()?;
-    let interop: IGraphicsCaptureItemInterop = factory.cast()?;
+    let interop = windows::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
     let mut item: Option<GraphicsCaptureItem> = None;
     unsafe {
         interop
@@ -51,8 +50,7 @@ fn create_capture_item_for_window(window_handle: HWND) -> windows::Result<Graphi
 }
 
 fn create_capture_item_for_monitor(monitor_handle: isize) -> windows::Result<GraphicsCaptureItem> {
-    let factory = windows::get_activation_factory::<GraphicsCaptureItem>()?;
-    let interop: IGraphicsCaptureItemInterop = factory.cast()?;
+    let interop = windows::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
     let mut item: Option<GraphicsCaptureItem> = None;
     unsafe {
         interop
