@@ -5,26 +5,19 @@ mod window_info;
 
 use bindings::windows::foundation::TypedEventHandler;
 use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
-use bindings::windows::graphics::directx::{
-    direct3d11::{Direct3DUsage, IDirect3DDevice},
-    DirectXPixelFormat,
-};
+use bindings::windows::graphics::directx::DirectXPixelFormat;
 use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
 use bindings::windows::win32::direct3d11::{
-    ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_FLAG, D3D11_MAP,
-    D3D11_MAPPED_SUBRESOURCE, D3D11_TEXTURE2D_DESC, D3D11_USAGE,
+    ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_FLAG, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
+    D3D11_TEXTURE2D_DESC, D3D11_USAGE,
 };
-use bindings::windows::win32::dxgi::IDXGIDevice;
 use bindings::windows::win32::gdi::MonitorFromWindow;
 use bindings::windows::win32::system_services::MONITOR_DEFAULTTOPRIMARY;
 use bindings::windows::win32::windows_and_messaging::{
     GetDesktopWindow, GetWindowThreadProcessId, HWND,
 };
-use bindings::windows::win32::winrt::{
-    CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
-    IGraphicsCaptureItemInterop, IInspectable, RoInitialize, RO_INIT_TYPE,
-};
+use bindings::windows::win32::winrt::{IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_TYPE};
 use windows::{Abi, Interface};
 
 use capture::enumerate_capturable_windows;

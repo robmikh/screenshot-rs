@@ -1,25 +1,19 @@
-use bindings::windows::graphics::directx::{
-    direct3d11::{Direct3DUsage, IDirect3DDevice},
-    DirectXPixelFormat,
-};
+use bindings::windows::graphics::directx::direct3d11::IDirect3DDevice;
 use bindings::windows::win32::winrt::{
-    CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
-    IGraphicsCaptureItemInterop, IInspectable, RoInitialize, RO_INIT_TYPE,
+    CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess, IInspectable,
 };
 use bindings::windows::{
     win32::{
         direct3d11::{
-            D3D11CreateDevice, ID3D11Device, ID3D11RenderTargetView, ID3D11Resource,
-            D3D11_BIND_FLAG, D3D11_CREATE_DEVICE_FLAG, D3D11_RENDER_TARGET_VIEW_DESC,
-            D3D11_RTV_DIMENSION, D3D11_SDK_VERSION, D3D11_TEXTURE2D_DESC, D3D11_USAGE,
+            D3D11CreateDevice, ID3D11Device, D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION,
             D3D_DRIVER_TYPE,
         },
-        dxgi::{IDXGIDevice, DXGI_FORMAT, DXGI_SAMPLE_DESC},
+        dxgi::IDXGIDevice,
         system_services::DXGI_ERROR_UNSUPPORTED,
     },
     ErrorCode,
 };
-use windows::{Abi, Interface, Object};
+use windows::{Abi, Interface};
 
 fn create_d3d_device_with_type(
     driver_type: D3D_DRIVER_TYPE,

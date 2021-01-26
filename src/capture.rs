@@ -1,7 +1,7 @@
 use crate::window_info::WindowInfo;
 use bindings::windows::win32::dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
 use bindings::windows::win32::system_services::{
-    GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW, GetConsoleWindow,
+    GetConsoleWindow, GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
 };
 use bindings::windows::win32::windows_and_messaging::{
     EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible, HWND, LPARAM,
@@ -26,7 +26,7 @@ pub fn enumerate_capturable_windows() -> Vec<WindowInfo> {
         };
         let state = Box::into_raw(Box::new(WindowEnumerationState {
             windows: Vec::new(),
-            console_window, 
+            console_window,
         }));
         EnumWindows(Some(enum_window), LPARAM(state as isize));
         let state = Box::from_raw(state);
