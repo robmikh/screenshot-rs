@@ -1,28 +1,52 @@
 use crate::window_info::WindowInfo;
 use bindings::windows::win32::dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
 use bindings::windows::win32::system_services::{
-    GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
+    GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW, GetConsoleWindow,
 };
 use bindings::windows::win32::windows_and_messaging::{
     EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible, HWND, LPARAM,
 };
 use bindings::windows::BOOL;
 
-pub fn enumerate_capturable_windows() -> Box<Vec<WindowInfo>> {
+struct WindowEnumerationState {
+    windows: Vec<WindowInfo>,
+    console_window: Option<HWND>,
+}
+
+pub fn enumerate_capturable_windows() -> Vec<WindowInfo> {
     unsafe {
-        let windows = Box::into_raw(Box::new(Vec::<WindowInfo>::new()));
-        EnumWindows(Some(enum_window), LPARAM(windows as isize));
-        Box::from_raw(windows)
+        // TODO: This works for Command Prompt but not Terminal
+        let console_window = {
+            let window_handle = GetConsoleWindow();
+            if window_handle.0 == 0 {
+                None
+            } else {
+                Some(window_handle)
+            }
+        };
+        let state = Box::into_raw(Box::new(WindowEnumerationState {
+            windows: Vec::new(),
+            console_window, 
+        }));
+        EnumWindows(Some(enum_window), LPARAM(state as isize));
+        let state = Box::from_raw(state);
+        state.windows
     }
 }
 
 extern "system" fn enum_window(window: HWND, state: LPARAM) -> BOOL {
     unsafe {
-        let state = Box::leak(Box::from_raw(state.0 as *mut Vec<WindowInfo>));
+        let state = Box::leak(Box::from_raw(state.0 as *mut WindowEnumerationState));
+
+        if let Some(console_window) = &state.console_window {
+            if window == *console_window {
+                return true.into();
+            }
+        }
 
         let window_info = WindowInfo::new(window);
         if window_info.is_capturable_window() {
-            state.push(window_info);
+            state.windows.push(window_info);
         }
     }
     true.into()

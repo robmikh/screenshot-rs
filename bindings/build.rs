@@ -18,6 +18,7 @@ fn main() {
             WS_DISABLED,
             WS_EX_TOOLWINDOW,
             MONITOR_DEFAULTTOPRIMARY,
+            GetConsoleWindow,
         },
         windows::win32::dwm::{
             DWMWINDOWATTRIBUTE,
