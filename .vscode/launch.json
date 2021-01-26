@@ -9,7 +9,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/screenshot.exe",
-            "args": [ "-w" , "Studio" ],
+            "args": [ "-p" ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

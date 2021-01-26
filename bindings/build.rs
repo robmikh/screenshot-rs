@@ -1,75 +1,98 @@
 fn main() {
     windows::build!(
-        windows::win32::menu_rc::{
-            MONITORINFO,
+        windows::win32::windows_and_messaging::{
             GetWindowLongW,
             IsWindowVisible,
             GetAncestor,
             GetShellWindow,
-            GetMonitorInfoW,
-            EnumDisplayMonitors,
             GetDesktopWindow,
             GetWindowThreadProcessId,
             GetClassNameW,
-            MonitorFromWindow,
             GetWindowTextW,
             EnumWindows,
-        }
-        windows::win32::base::{
+        },
+        windows::win32::system_services::{
             GA_ROOT,
             GWL_STYLE,
             GWL_EXSTYLE,
             WS_DISABLED,
             WS_EX_TOOLWINDOW,
             MONITOR_DEFAULTTOPRIMARY,
-        }
+        },
         windows::win32::dwm::{
             DWMWINDOWATTRIBUTE,
             DwmGetWindowAttribute,
-        }
-        windows::win32::backup::{
+        },
+        windows::win32::display_devices::{
             RECT,
-        }
+        },
+        windows::win32::gdi::{
+            MONITORINFO,
+            GetMonitorInfoW,
+            EnumDisplayMonitors,
+            MonitorFromWindow,
+        },
+        windows::win32::system_services::{
+            DXGI_ERROR_UNSUPPORTED,
+        },
+        windows::win32::dxgi::{
+            DXGI_FORMAT,
+            DXGI_SAMPLE_DESC,
+            IDXGIDevice,
+        },
+        windows::win32::direct3d11::{
+            D3D11CreateDevice,
+            D3D_DRIVER_TYPE,
+            D3D11_CREATE_DEVICE_FLAG,
+            D3D11_SDK_VERSION,
+            ID3D11Device,
+            D3D11_TEXTURE2D_DESC,
+            D3D11_USAGE,
+            D3D11_BIND_FLAG,
+            D3D11_RENDER_TARGET_VIEW_DESC,
+            D3D11_RTV_DIMENSION,
+            ID3D11Resource,
+            ID3D11RenderTargetView,
+            D3D11_CPU_ACCESS_FLAG,
+            D3D11_MAPPED_SUBRESOURCE,
+            D3D11_MAP,
+        },
         windows::win32::winrt::{
            RO_INIT_TYPE,
            RoInitialize,
-        }
+           IInspectable,
+           IGraphicsCaptureItemInterop,
+           IDirect3DDxgiInterfaceAccess,
+           CreateDirect3D11DeviceFromDXGIDevice,
+        },
         windows::ui::{
             Colors,
-        }
+        },
         windows::storage::{
             StorageFolder,
             StorageFile,
             CreationCollisionOption,
             FileAccessMode,
-        }
+        },
         windows::graphics::capture::{
             Direct3D11CaptureFramePool,
             Direct3D11CaptureFrame,
             GraphicsCaptureSession,
             GraphicsCaptureItem,
-        }
+        },
         windows::graphics::directx::{
             DirectXPixelFormat
-        }
+        },
         windows::graphics::directx::direct3d11::{
             Direct3DUsage,
             Direct3DBindings,
-        }
+            IDirect3DDevice,
+            IDirect3DSurface,
+        },
         windows::graphics::imaging::{
             BitmapEncoder,
             BitmapPixelFormat,
             BitmapAlphaMode,
-        }
-        win_rt_interop_tools::{
-            Direct3D11Device,
-            Direct3D11DeviceContext,
-            Direct3D11CpuAccessFlag,
-            Direct3D11Texture2DDescription,
-            Direct3D11Texture2D,
-        }
-        win_rt_interop_tools::desktop::{
-            CaptureItemInterop
-        }
+        },
     );
 }

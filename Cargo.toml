@@ -5,7 +5,8 @@ authors = ["robmikh <rob.mikh@outlook.com>"]
 edition = "2018"
 
 [dependencies]
-windows = { git = "https://github.com/microsoft/windows-rs" }
+#windows = { git = "https://github.com/microsoft/windows-rs" }
+windows = { path = "../winrt-rs" }
 bindings = { path = "bindings" }
 clap = "2.33.3"
 

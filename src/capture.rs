@@ -1,11 +1,12 @@
 use crate::window_info::WindowInfo;
-use bindings::windows::win32::base::{
-    BOOL, GA_ROOT, GWL_EXSTYLE, GWL_STYLE, HWND, LPARAM, WS_DISABLED, WS_EX_TOOLWINDOW,
-};
 use bindings::windows::win32::dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
-use bindings::windows::win32::menu_rc::{
-    EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible,
+use bindings::windows::win32::system_services::{
+    GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
 };
+use bindings::windows::win32::windows_and_messaging::{
+    EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible, HWND, LPARAM,
+};
+use bindings::windows::BOOL;
 
 pub fn enumerate_capturable_windows() -> Box<Vec<WindowInfo>> {
     unsafe {

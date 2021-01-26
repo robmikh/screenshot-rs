@@ -1,26 +1,70 @@
 mod capture;
+mod d3d;
 mod display_info;
 mod window_info;
 
-use bindings::win_rt_interop_tools::{
-    desktop::CaptureItemInterop, Direct3D11CpuAccessFlag, Direct3D11Device, Direct3D11Texture2D,
-};
 use bindings::windows::foundation::TypedEventHandler;
 use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
-use bindings::windows::graphics::directx::{direct3d11::Direct3DUsage, DirectXPixelFormat};
+use bindings::windows::graphics::directx::{
+    direct3d11::{Direct3DUsage, IDirect3DDevice},
+    DirectXPixelFormat,
+};
 use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use bindings::windows::win32::base::MONITOR_DEFAULTTOPRIMARY;
-use bindings::windows::win32::menu_rc::{
-    GetDesktopWindow, GetWindowThreadProcessId, MonitorFromWindow,
+use bindings::windows::win32::direct3d11::{
+    ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_FLAG, D3D11_MAP,
+    D3D11_MAPPED_SUBRESOURCE, D3D11_TEXTURE2D_DESC, D3D11_USAGE,
 };
-use bindings::windows::win32::winrt::{RoInitialize, RO_INIT_TYPE};
+use bindings::windows::win32::dxgi::IDXGIDevice;
+use bindings::windows::win32::gdi::MonitorFromWindow;
+use bindings::windows::win32::system_services::MONITOR_DEFAULTTOPRIMARY;
+use bindings::windows::win32::windows_and_messaging::{
+    GetDesktopWindow, GetWindowThreadProcessId, HWND,
+};
+use bindings::windows::win32::winrt::{
+    CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
+    IGraphicsCaptureItemInterop, IInspectable, RoInitialize, RO_INIT_TYPE,
+};
+use windows::{Abi, Interface};
+
 use capture::enumerate_capturable_windows;
 use clap::{value_t, App, Arg};
 use display_info::enumerate_displays;
 use std::io::Write;
 use std::sync::mpsc::channel;
 use window_info::WindowInfo;
+
+fn create_capture_item_for_window(window_handle: HWND) -> windows::Result<GraphicsCaptureItem> {
+    let factory = windows::get_activation_factory::<GraphicsCaptureItem>()?;
+    let interop: IGraphicsCaptureItemInterop = factory.cast()?;
+    let mut item: Option<GraphicsCaptureItem> = None;
+    unsafe {
+        interop
+            .CreateForWindow(
+                window_handle,
+                &GraphicsCaptureItem::IID as *const _,
+                item.set_abi(),
+            )
+            .ok()?;
+    }
+    Ok(item.unwrap())
+}
+
+fn create_capture_item_for_monitor(monitor_handle: isize) -> windows::Result<GraphicsCaptureItem> {
+    let factory = windows::get_activation_factory::<GraphicsCaptureItem>()?;
+    let interop: IGraphicsCaptureItemInterop = factory.cast()?;
+    let mut item: Option<GraphicsCaptureItem> = None;
+    unsafe {
+        interop
+            .CreateForMonitor(
+                monitor_handle,
+                &GraphicsCaptureItem::IID as *const _,
+                item.set_abi(),
+            )
+            .ok()?;
+    }
+    Ok(item.unwrap())
+}
 
 fn main() -> windows::Result<()> {
     unsafe {
@@ -57,7 +101,7 @@ fn main() -> windows::Result<()> {
     let item = if matches.is_present("window") {
         let query = matches.value_of("window").unwrap();
         let window = get_window_from_query(query)?;
-        CaptureItemInterop::create_for_window(window.handle.0 as u64)?
+        create_capture_item_for_window(window.handle)?
     } else if matches.is_present("monitor") {
         let id = value_t!(matches, "monitor", usize).unwrap();
         let displays = enumerate_displays();
@@ -71,11 +115,11 @@ fn main() -> windows::Result<()> {
             std::process::exit(1);
         }
         let display = &displays[index];
-        CaptureItemInterop::create_for_monitor(display.handle as u64)?
+        create_capture_item_for_monitor(display.handle)?
     } else if matches.is_present("primary") {
         let monitor_handle =
             unsafe { MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY as u32) };
-        CaptureItemInterop::create_for_monitor(monitor_handle as u64)?
+        create_capture_item_for_monitor(monitor_handle)?
     } else {
         std::process::exit(0);
     };
@@ -88,7 +132,13 @@ fn main() -> windows::Result<()> {
 fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
     let item_size = item.size()?;
 
-    let device = Direct3D11Device::new()?;
+    let d3d_device = d3d::create_d3d_device()?;
+    let d3d_context = {
+        let mut d3d_context = None;
+        d3d_device.GetImmediateContext(&mut d3d_context);
+        d3d_context.unwrap()
+    };
+    let device = d3d::create_direct3d_device(&d3d_device)?;
     let frame_pool = Direct3D11CaptureFramePool::create_free_threaded(
         &device,
         DirectXPixelFormat::B8G8R8A8UIntNormalized,
@@ -102,25 +152,29 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
         Direct3D11CaptureFramePool,
         windows::Object,
     >::new({
-        let device = device.clone();
+        let d3d_device = d3d_device.clone();
+        let d3d_context = d3d_context.clone();
         let session = session.clone();
         move |frame_pool, _| {
             let frame_pool = frame_pool.as_ref().unwrap();
             let frame = frame_pool.try_get_next_frame()?;
-            let source_texture =
-                Direct3D11Texture2D::create_from_direct3d_surface(frame.surface()?)?;
-            let mut desc = source_texture.description2d()?;
-            desc.usage = Direct3DUsage::Staging;
-            desc.cpu_access_flags = Direct3D11CpuAccessFlag::AccessRead;
-            unsafe {
-                use std::mem::transmute;
-                desc.bind_flags = transmute(0);
-                desc.misc_flags = transmute(0);
-            }
-            let copy_texture = device.create_texture2d(desc)?;
+            let source_texture: ID3D11Texture2D =
+                d3d::get_d3d_interface_from_object(&frame.surface()?)?;
+            let mut desc = D3D11_TEXTURE2D_DESC::default();
+            source_texture.GetDesc(&mut desc);
+            desc.bind_flags = 0;
+            desc.misc_flags = 0;
+            desc.usage = D3D11_USAGE::D3D11_USAGE_STAGING;
+            desc.cpu_access_flags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ.0 as u32;
+            let copy_texture = {
+                let mut texture = None;
+                d3d_device
+                    .CreateTexture2D(&desc, std::ptr::null(), &mut texture)
+                    .ok()?;
+                texture.unwrap()
+            };
 
-            let context = device.immediate_context()?;
-            context.copy_resource(&copy_texture, source_texture)?;
+            d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
 
             session.close()?;
             frame_pool.close()?;
@@ -132,7 +186,44 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
     session.start_capture()?;
 
     let texture = receiver.recv().unwrap();
-    let bits = texture.get_bytes()?;
+    let bits = {
+        let mut desc = D3D11_TEXTURE2D_DESC::default();
+        texture.GetDesc(&mut desc as *mut _);
+
+        let resource: ID3D11Resource = texture.cast()?;
+        let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+        d3d_context
+            .Map(
+                Some(resource.clone()),
+                0,
+                D3D11_MAP::D3D11_MAP_READ,
+                0,
+                &mut mapped as *mut _,
+            )
+            .ok()?;
+
+        // Get a slice of bytes
+        let slice: &[u8] = unsafe {
+            std::slice::from_raw_parts(
+                mapped.p_data as *const _,
+                (desc.height * mapped.row_pitch) as usize,
+            )
+        };
+
+        let bytes_per_pixel = 4;
+        let mut bits = vec![0u8; (desc.width * desc.height * bytes_per_pixel) as usize];
+        for row in 0..desc.height {
+            let data_begin = (row * (desc.width * bytes_per_pixel)) as usize;
+            let data_end = ((row + 1) * (desc.width * bytes_per_pixel)) as usize;
+            let slice_begin = (row * mapped.row_pitch) as usize;
+            let slice_end = slice_begin + (desc.width * bytes_per_pixel) as usize;
+            bits[data_begin..data_end].copy_from_slice(&slice[slice_begin..slice_end]);
+        }
+
+        d3d_context.Unmap(Some(resource), 0);
+
+        bits
+    };
 
     let path = std::env::current_dir()
         .unwrap()

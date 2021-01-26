@@ -1,5 +1,4 @@
-use bindings::windows::win32::base::HWND;
-use bindings::windows::win32::menu_rc::{GetClassNameW, GetWindowTextW};
+use bindings::windows::win32::windows_and_messaging::{GetClassNameW, GetWindowTextW, HWND};
 
 #[derive(Clone)]
 pub struct WindowInfo {
