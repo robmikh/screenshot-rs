@@ -1,6 +1,7 @@
 fn main() {
     windows::build!(
-        windows::win32::windows_and_messaging::{
+        Windows::Foundation::*,
+        Windows::Win32::WindowsAndMessaging::{
             GetWindowLongW,
             IsWindowVisible,
             GetAncestor,
@@ -10,38 +11,35 @@ fn main() {
             GetClassNameW,
             GetWindowTextW,
             EnumWindows,
+            GetAncestor_gaFlags,
+            WINDOW_LONG_PTR_INDEX,
+            WINDOW_STYLE,
+            WINDOW_EX_STYLE,
         },
-        windows::win32::system_services::{
-            GA_ROOT,
-            GWL_STYLE,
-            GWL_EXSTYLE,
-            WS_DISABLED,
-            WS_EX_TOOLWINDOW,
-            MONITOR_DEFAULTTOPRIMARY,
+        Windows::Win32::SystemServices::{
             GetConsoleWindow,
         },
-        windows::win32::dwm::{
+        Windows::Win32::Dwm::{
             DWMWINDOWATTRIBUTE,
             DwmGetWindowAttribute,
         },
-        windows::win32::display_devices::{
+        Windows::Win32::DisplayDevices::{
             RECT,
         },
-        windows::win32::gdi::{
+        Windows::Win32::Gdi::{
             MONITORINFO,
             GetMonitorInfoW,
             EnumDisplayMonitors,
             MonitorFromWindow,
+            MonitorFrom_dwFlags,
         },
-        windows::win32::system_services::{
-            DXGI_ERROR_UNSUPPORTED,
-        },
-        windows::win32::dxgi::{
+        Windows::Win32::Dxgi::{
             DXGI_FORMAT,
             DXGI_SAMPLE_DESC,
             IDXGIDevice,
+            DXGI_ERROR_UNSUPPORTED,
         },
-        windows::win32::direct3d11::{
+        Windows::Win32::Direct3D11::{
             D3D11CreateDevice,
             D3D_DRIVER_TYPE,
             D3D11_CREATE_DEVICE_FLAG,
@@ -57,8 +55,10 @@ fn main() {
             D3D11_CPU_ACCESS_FLAG,
             D3D11_MAPPED_SUBRESOURCE,
             D3D11_MAP,
+            ID3D11Texture2D,
+            D3D11_SUBRESOURCE_DATA,
         },
-        windows::win32::winrt::{
+        Windows::Win32::WinRT::{
            RO_INIT_TYPE,
            RoInitialize,
            IInspectable,
@@ -66,31 +66,37 @@ fn main() {
            IDirect3DDxgiInterfaceAccess,
            CreateDirect3D11DeviceFromDXGIDevice,
         },
-        windows::ui::{
+        Windows::UI::{
             Colors,
         },
-        windows::storage::{
+        Windows::Storage::{
             StorageFolder,
             StorageFile,
             CreationCollisionOption,
             FileAccessMode,
         },
-        windows::graphics::capture::{
+        Windows::Storage::Streams::{
+            IRandomAccessStream,
+        },
+        Windows::Graphics::{
+            SizeInt32,
+        },
+        Windows::Graphics::Capture::{
             Direct3D11CaptureFramePool,
             Direct3D11CaptureFrame,
             GraphicsCaptureSession,
             GraphicsCaptureItem,
         },
-        windows::graphics::directx::{
+        Windows::Graphics::DirectX::{
             DirectXPixelFormat
         },
-        windows::graphics::directx::direct3d11::{
+        Windows::Graphics::DirectX::Direct3D11::{
             Direct3DUsage,
             Direct3DBindings,
             IDirect3DDevice,
             IDirect3DSurface,
         },
-        windows::graphics::imaging::{
+        Windows::Graphics::Imaging::{
             BitmapEncoder,
             BitmapPixelFormat,
             BitmapAlphaMode,

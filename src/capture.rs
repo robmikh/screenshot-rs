@@ -1,12 +1,10 @@
 use crate::window_info::WindowInfo;
-use bindings::windows::win32::dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
-use bindings::windows::win32::system_services::{
-    GetConsoleWindow, GA_ROOT, GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
+use bindings::Windows::Win32::Dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
+use bindings::Windows::Win32::SystemServices::{GetConsoleWindow, BOOL};
+use bindings::Windows::Win32::WindowsAndMessaging::{
+    EnumWindows, GetAncestor, GetAncestor_gaFlags, GetShellWindow, GetWindowLongW, IsWindowVisible,
+    HWND, LPARAM, WINDOW_EX_STYLE, WINDOW_LONG_PTR_INDEX, WINDOW_STYLE,
 };
-use bindings::windows::win32::windows_and_messaging::{
-    EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible, HWND, LPARAM,
-};
-use bindings::windows::BOOL;
 
 struct WindowEnumerationState {
     windows: Vec<WindowInfo>,
@@ -61,20 +59,20 @@ impl CaptureWindowCandidate for WindowInfo {
         unsafe {
             if self.title.is_empty()
                 || self.handle == GetShellWindow()
-                || IsWindowVisible(self.handle) == false.into()
-                || GetAncestor(self.handle, GA_ROOT as u32) != self.handle
+                || IsWindowVisible(self.handle).as_bool() == false
+                || GetAncestor(self.handle, GetAncestor_gaFlags::GA_ROOT) != self.handle
             {
                 return false;
             }
 
-            let style = GetWindowLongW(self.handle, GWL_STYLE);
-            if style & (WS_DISABLED as i32) == 1 {
+            let style = GetWindowLongW(self.handle, WINDOW_LONG_PTR_INDEX::GWL_STYLE);
+            if style & (WINDOW_STYLE::WS_DISABLED.0 as i32) == 1 {
                 return false;
             }
 
             // No tooltips
-            let ex_style = GetWindowLongW(self.handle, GWL_EXSTYLE);
-            if ex_style & WS_EX_TOOLWINDOW == 1 {
+            let ex_style = GetWindowLongW(self.handle, WINDOW_LONG_PTR_INDEX::GWL_EXSTYLE);
+            if ex_style & (WINDOW_EX_STYLE::WS_EX_TOOLWINDOW.0 as i32) == 1 {
                 return false;
             }
 

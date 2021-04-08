@@ -3,21 +3,20 @@ mod d3d;
 mod display_info;
 mod window_info;
 
-use bindings::windows::foundation::TypedEventHandler;
-use bindings::windows::graphics::capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
-use bindings::windows::graphics::directx::DirectXPixelFormat;
-use bindings::windows::graphics::imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
-use bindings::windows::storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use bindings::windows::win32::direct3d11::{
+use bindings::Windows::Foundation::TypedEventHandler;
+use bindings::Windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
+use bindings::Windows::Graphics::DirectX::DirectXPixelFormat;
+use bindings::Windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
+use bindings::Windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
+use bindings::Windows::Win32::Direct3D11::{
     ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_FLAG, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
     D3D11_TEXTURE2D_DESC, D3D11_USAGE,
 };
-use bindings::windows::win32::gdi::MonitorFromWindow;
-use bindings::windows::win32::system_services::MONITOR_DEFAULTTOPRIMARY;
-use bindings::windows::win32::windows_and_messaging::{
+use bindings::Windows::Win32::Gdi::{MonitorFromWindow, MonitorFrom_dwFlags, HMONITOR};
+use bindings::Windows::Win32::WinRT::{IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_TYPE};
+use bindings::Windows::Win32::WindowsAndMessaging::{
     GetDesktopWindow, GetWindowThreadProcessId, HWND,
 };
-use bindings::windows::win32::winrt::{IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_TYPE};
 use windows::{Abi, Interface};
 
 use capture::enumerate_capturable_windows;
@@ -42,7 +41,9 @@ fn create_capture_item_for_window(window_handle: HWND) -> windows::Result<Graphi
     Ok(item.unwrap())
 }
 
-fn create_capture_item_for_monitor(monitor_handle: isize) -> windows::Result<GraphicsCaptureItem> {
+fn create_capture_item_for_monitor(
+    monitor_handle: HMONITOR,
+) -> windows::Result<GraphicsCaptureItem> {
     let interop = windows::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
     let mut item: Option<GraphicsCaptureItem> = None;
     unsafe {
@@ -108,8 +109,12 @@ fn main() -> windows::Result<()> {
         let display = &displays[index];
         create_capture_item_for_monitor(display.handle)?
     } else if matches.is_present("primary") {
-        let monitor_handle =
-            unsafe { MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY as u32) };
+        let monitor_handle = unsafe {
+            MonitorFromWindow(
+                GetDesktopWindow(),
+                MonitorFrom_dwFlags::MONITOR_DEFAULTTOPRIMARY,
+            )
+        };
         create_capture_item_for_monitor(monitor_handle)?
     } else {
         std::process::exit(0);
@@ -121,42 +126,42 @@ fn main() -> windows::Result<()> {
 }
 
 fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
-    let item_size = item.size()?;
+    let item_size = item.Size()?;
 
     let d3d_device = d3d::create_d3d_device()?;
-    let d3d_context = {
+    let d3d_context = unsafe {
         let mut d3d_context = None;
         d3d_device.GetImmediateContext(&mut d3d_context);
         d3d_context.unwrap()
     };
     let device = d3d::create_direct3d_device(&d3d_device)?;
-    let frame_pool = Direct3D11CaptureFramePool::create_free_threaded(
+    let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
         &device,
         DirectXPixelFormat::B8G8R8A8UIntNormalized,
         1,
         &item_size,
     )?;
-    let session = frame_pool.create_capture_session(item)?;
+    let session = frame_pool.CreateCaptureSession(item)?;
 
     let (sender, receiver) = channel();
-    frame_pool.frame_arrived(TypedEventHandler::<
+    frame_pool.FrameArrived(TypedEventHandler::<
         Direct3D11CaptureFramePool,
         windows::Object,
     >::new({
         let d3d_device = d3d_device.clone();
         let d3d_context = d3d_context.clone();
         let session = session.clone();
-        move |frame_pool, _| {
+        move |frame_pool, _| unsafe {
             let frame_pool = frame_pool.as_ref().unwrap();
-            let frame = frame_pool.try_get_next_frame()?;
+            let frame = frame_pool.TryGetNextFrame()?;
             let source_texture: ID3D11Texture2D =
-                d3d::get_d3d_interface_from_object(&frame.surface()?)?;
+                d3d::get_d3d_interface_from_object(&frame.Surface()?)?;
             let mut desc = D3D11_TEXTURE2D_DESC::default();
             source_texture.GetDesc(&mut desc);
-            desc.bind_flags = 0;
-            desc.misc_flags = 0;
-            desc.usage = D3D11_USAGE::D3D11_USAGE_STAGING;
-            desc.cpu_access_flags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ.0 as u32;
+            desc.BindFlags = 0;
+            desc.MiscFlags = 0;
+            desc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ.0 as u32;
             let copy_texture = {
                 let mut texture = None;
                 d3d_device
@@ -167,17 +172,17 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
 
             d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
 
-            session.close()?;
-            frame_pool.close()?;
+            session.Close()?;
+            frame_pool.Close()?;
 
             sender.send(copy_texture).unwrap();
             Ok(())
         }
     }))?;
-    session.start_capture()?;
+    session.StartCapture()?;
 
     let texture = receiver.recv().unwrap();
-    let bits = {
+    let bits = unsafe {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc as *mut _);
 
@@ -194,20 +199,20 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
             .ok()?;
 
         // Get a slice of bytes
-        let slice: &[u8] = unsafe {
+        let slice: &[u8] = {
             std::slice::from_raw_parts(
-                mapped.p_data as *const _,
-                (desc.height * mapped.row_pitch) as usize,
+                mapped.pData as *const _,
+                (desc.Height * mapped.RowPitch) as usize,
             )
         };
 
         let bytes_per_pixel = 4;
-        let mut bits = vec![0u8; (desc.width * desc.height * bytes_per_pixel) as usize];
-        for row in 0..desc.height {
-            let data_begin = (row * (desc.width * bytes_per_pixel)) as usize;
-            let data_end = ((row + 1) * (desc.width * bytes_per_pixel)) as usize;
-            let slice_begin = (row * mapped.row_pitch) as usize;
-            let slice_end = slice_begin + (desc.width * bytes_per_pixel) as usize;
+        let mut bits = vec![0u8; (desc.Width * desc.Height * bytes_per_pixel) as usize];
+        for row in 0..desc.Height {
+            let data_begin = (row * (desc.Width * bytes_per_pixel)) as usize;
+            let data_end = ((row + 1) * (desc.Width * bytes_per_pixel)) as usize;
+            let slice_begin = (row * mapped.RowPitch) as usize;
+            let slice_end = slice_begin + (desc.Width * bytes_per_pixel) as usize;
             bits[data_begin..data_end].copy_from_slice(&slice[slice_begin..slice_end]);
         }
 
@@ -220,26 +225,25 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
         .unwrap()
         .to_string_lossy()
         .to_string();
-    let folder = StorageFolder::get_folder_from_path_async(path.as_str())?.get()?;
+    let folder = StorageFolder::GetFolderFromPathAsync(path.as_str())?.get()?;
     let file = folder
-        .create_file_async("screenshot.png", CreationCollisionOption::ReplaceExisting)?
+        .CreateFileAsync("screenshot.png", CreationCollisionOption::ReplaceExisting)?
         .get()?;
 
     {
-        let stream = file.open_async(FileAccessMode::ReadWrite)?.get()?;
-        let encoder =
-            BitmapEncoder::create_async(BitmapEncoder::png_encoder_id()?, stream)?.get()?;
-        encoder.set_pixel_data(
+        let stream = file.OpenAsync(FileAccessMode::ReadWrite)?.get()?;
+        let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, stream)?.get()?;
+        encoder.SetPixelData(
             BitmapPixelFormat::Bgra8,
             BitmapAlphaMode::Premultiplied,
-            item_size.width as u32,
-            item_size.height as u32,
+            item_size.Width as u32,
+            item_size.Height as u32,
             1.0,
             1.0,
             &bits,
         )?;
 
-        encoder.flush_async()?.get()?;
+        encoder.FlushAsync()?.get()?;
     }
 
     Ok(())

@@ -1,23 +1,19 @@
-use bindings::windows::graphics::directx::direct3d11::IDirect3DDevice;
-use bindings::windows::win32::winrt::{
+use bindings::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
+use bindings::Windows::Win32::WinRT::{
     CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess, IInspectable,
 };
-use bindings::windows::{
-    win32::{
-        direct3d11::{
-            D3D11CreateDevice, ID3D11Device, D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION,
-            D3D_DRIVER_TYPE,
-        },
-        dxgi::IDXGIDevice,
-        system_services::DXGI_ERROR_UNSUPPORTED,
+use bindings::Windows::Win32::{
+    Direct3D11::{
+        D3D11CreateDevice, ID3D11Device, D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION,
+        D3D_DRIVER_TYPE,
     },
-    ErrorCode,
+    Dxgi::{IDXGIDevice, DXGI_ERROR_UNSUPPORTED},
 };
-use windows::{Abi, Interface};
+use windows::{Abi, ErrorCode, Interface};
 
 fn create_d3d_device_with_type(
     driver_type: D3D_DRIVER_TYPE,
-    flags: u32,
+    flags: D3D11_CREATE_DEVICE_FLAG,
     device: *mut Option<ID3D11Device>,
 ) -> ErrorCode {
     unsafe {
@@ -40,13 +36,13 @@ pub fn create_d3d_device() -> windows::Result<ID3D11Device> {
     let mut device = None;
     let mut hresult = create_d3d_device_with_type(
         D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE,
-        D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT.0 as u32,
+        D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT,
         &mut device,
     );
-    if hresult.0 == DXGI_ERROR_UNSUPPORTED as u32 {
+    if hresult.0 == DXGI_ERROR_UNSUPPORTED.0 as u32 {
         hresult = create_d3d_device_with_type(
             D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_WARP,
-            D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT.0 as u32,
+            D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_BGRA_SUPPORT,
             &mut device,
         );
     }

@@ -1,17 +1,19 @@
 const CCHDEVICENAME: usize = 32;
-use bindings::windows::win32::display_devices::RECT;
-use bindings::windows::win32::gdi::{EnumDisplayMonitors, GetMonitorInfoW, HDC, MONITORINFO};
-use bindings::windows::win32::windows_and_messaging::LPARAM;
-use bindings::windows::BOOL;
+use bindings::Windows::Win32::DisplayDevices::RECT;
+use bindings::Windows::Win32::Gdi::{
+    EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
+};
+use bindings::Windows::Win32::SystemServices::BOOL;
+use bindings::Windows::Win32::WindowsAndMessaging::LPARAM;
 
 #[derive(Clone)]
 pub struct DisplayInfo {
-    pub handle: isize,
+    pub handle: HMONITOR,
     pub display_name: String,
 }
 
 impl DisplayInfo {
-    pub fn new(monitor_handle: isize) -> Self {
+    pub fn new(monitor_handle: HMONITOR) -> Self {
         #[repr(C)]
         struct MonitorInfoExW {
             _base: MONITORINFO,
@@ -20,27 +22,27 @@ impl DisplayInfo {
 
         let mut info = MonitorInfoExW {
             _base: MONITORINFO {
-                cb_size: std::mem::size_of::<MonitorInfoExW>() as u32,
-                rc_monitor: RECT {
+                cbSize: std::mem::size_of::<MonitorInfoExW>() as u32,
+                rcMonitor: RECT {
                     left: 0,
                     top: 0,
                     right: 0,
                     bottom: 0,
                 },
-                rc_work: RECT {
+                rcWork: RECT {
                     left: 0,
                     top: 0,
                     right: 0,
                     bottom: 0,
                 },
-                dw_flags: 0,
+                dwFlags: 0,
             },
             sz_device: [0u16; CCHDEVICENAME],
         };
 
         unsafe {
             let result = GetMonitorInfoW(monitor_handle, &mut info as *mut _ as *mut _);
-            if result == false.into() {
+            if result.as_bool() == false {
                 panic!("GetMonitorInfoW failed!");
             }
         }
@@ -69,10 +71,9 @@ pub fn enumerate_displays() -> Box<Vec<DisplayInfo>> {
     }
 }
 
-extern "system" fn enum_monitor(monitor: isize, _: HDC, _: *mut RECT, state: LPARAM) -> BOOL {
+extern "system" fn enum_monitor(monitor: HMONITOR, _: HDC, _: *mut RECT, state: LPARAM) -> BOOL {
     unsafe {
         let state = Box::leak(Box::from_raw(state.0 as *mut Vec<DisplayInfo>));
-
         let display_info = DisplayInfo::new(monitor);
         state.push(display_info);
     }

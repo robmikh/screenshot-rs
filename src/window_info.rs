@@ -1,4 +1,5 @@
-use bindings::windows::win32::windows_and_messaging::{GetClassNameW, GetWindowTextW, HWND};
+use bindings::Windows::Win32::SystemServices::PWSTR;
+use bindings::Windows::Win32::WindowsAndMessaging::{GetClassNameW, GetWindowTextW, HWND};
 
 #[derive(Clone)]
 pub struct WindowInfo {
@@ -12,14 +13,14 @@ impl WindowInfo {
     pub fn new(window_handle: HWND) -> Self {
         unsafe {
             let mut title = [0u16; 512];
-            GetWindowTextW(window_handle, title.as_mut_ptr(), title.len() as i32);
+            GetWindowTextW(window_handle, PWSTR(title.as_mut_ptr()), title.len() as i32);
             let mut title = String::from_utf16_lossy(&title);
             truncate_to_first_null_char(&mut title);
 
             let mut class_name = [0u16; 512];
             GetClassNameW(
                 window_handle,
-                class_name.as_mut_ptr(),
+                PWSTR(class_name.as_mut_ptr()),
                 class_name.len() as i32,
             );
             let mut class_name = String::from_utf16_lossy(&class_name);
