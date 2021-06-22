@@ -46,6 +46,7 @@ fn main() {
             D3D11_CREATE_DEVICE_FLAG,
             D3D11_SDK_VERSION,
             ID3D11Device,
+            ID3D11DeviceContext,
             D3D11_TEXTURE2D_DESC,
             D3D11_USAGE,
             D3D11_BIND_FLAG,

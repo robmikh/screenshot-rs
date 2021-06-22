@@ -164,9 +164,9 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "windows"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25b270ca3fa1282aa091f122551348f8186f07888dffdfe64df17206ad3b56d0"
+checksum = "fc9f9638ab146d5aac1e2a11e6a7d0936f2539ff7bf506bda53e32d8bc717522"
 dependencies = [
  "const-sha1",
  "windows_gen",
@@ -175,15 +175,15 @@ dependencies = [
 
 [[package]]
 name = "windows_gen"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44bd40154eb69ba3c80f11752494a2a34d1b448b06b80449238edfbd00ec7eef"
+checksum = "98559339612c93b285707747c52e6bc647ecbf4c1559287500e3c4dc0f9beecd"
 
 [[package]]
 name = "windows_macros"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bae6942e04aa5792bbf3b3cf5ded1b7590a7ffd76d53ea179210b87911b6587f"
+checksum = "d6fbda4b2e343ede6ce95ae3bc2e35e546b7869e100b8c661d3393f4fbbb4cc6"
 dependencies = [
  "syn",
  "windows_gen",
