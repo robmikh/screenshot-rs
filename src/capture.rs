@@ -1,9 +1,12 @@
 use crate::window_info::WindowInfo;
-use bindings::Windows::Win32::Dwm::{DwmGetWindowAttribute, DWMWINDOWATTRIBUTE};
-use bindings::Windows::Win32::SystemServices::{GetConsoleWindow, BOOL};
-use bindings::Windows::Win32::WindowsAndMessaging::{
-    EnumWindows, GetAncestor, GetAncestor_gaFlags, GetShellWindow, GetWindowLongW, IsWindowVisible,
-    HWND, LPARAM, WINDOW_EX_STYLE, WINDOW_LONG_PTR_INDEX, WINDOW_STYLE,
+use bindings::Windows::Win32::Foundation::{BOOL, HWND, LPARAM};
+use bindings::Windows::Win32::Graphics::Dwm::{
+    DwmGetWindowAttribute, DWMWA_CLOAKED, DWM_CLOAKED_SHELL,
+};
+use bindings::Windows::Win32::System::Console::GetConsoleWindow;
+use bindings::Windows::Win32::UI::WindowsAndMessaging::{
+    EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible, GA_ROOT,
+    GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
 };
 
 struct WindowEnumerationState {
@@ -60,19 +63,19 @@ impl CaptureWindowCandidate for WindowInfo {
             if self.title.is_empty()
                 || self.handle == GetShellWindow()
                 || IsWindowVisible(self.handle).as_bool() == false
-                || GetAncestor(self.handle, GetAncestor_gaFlags::GA_ROOT) != self.handle
+                || GetAncestor(self.handle, GA_ROOT) != self.handle
             {
                 return false;
             }
 
-            let style = GetWindowLongW(self.handle, WINDOW_LONG_PTR_INDEX::GWL_STYLE);
-            if style & (WINDOW_STYLE::WS_DISABLED.0 as i32) == 1 {
+            let style = GetWindowLongW(self.handle, GWL_STYLE);
+            if style & (WS_DISABLED.0 as i32) == 1 {
                 return false;
             }
 
             // No tooltips
-            let ex_style = GetWindowLongW(self.handle, WINDOW_LONG_PTR_INDEX::GWL_EXSTYLE);
-            if ex_style & (WINDOW_EX_STYLE::WS_EX_TOOLWINDOW.0 as i32) == 1 {
+            let ex_style = GetWindowLongW(self.handle, GWL_EXSTYLE);
+            if ex_style & (WS_EX_TOOLWINDOW.0 as i32) == 1 {
                 return false;
             }
 
@@ -83,12 +86,12 @@ impl CaptureWindowCandidate for WindowInfo {
                 let mut cloaked: u32 = 0;
                 if DwmGetWindowAttribute(
                     self.handle,
-                    std::mem::transmute::<_, u32>(DWMWINDOWATTRIBUTE::DWMWA_CLOAKED),
+                    std::mem::transmute::<_, u32>(DWMWA_CLOAKED),
                     &mut cloaked as *mut _ as *mut _,
                     std::mem::size_of::<u32>() as u32,
                 )
                 .is_ok()
-                    && cloaked == /* DWM_CLOAKED_SHELL is missing... */ 0x0000002
+                    && cloaked == DWM_CLOAKED_SHELL
                 {
                     return false;
                 }

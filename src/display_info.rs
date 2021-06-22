@@ -1,10 +1,8 @@
 const CCHDEVICENAME: usize = 32;
-use bindings::Windows::Win32::DisplayDevices::RECT;
-use bindings::Windows::Win32::Gdi::{
+use bindings::Windows::Win32::Foundation::{BOOL, LPARAM, RECT};
+use bindings::Windows::Win32::Graphics::Gdi::{
     EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
 };
-use bindings::Windows::Win32::SystemServices::BOOL;
-use bindings::Windows::Win32::WindowsAndMessaging::LPARAM;
 
 #[derive(Clone)]
 pub struct DisplayInfo {

@@ -1,7 +1,7 @@
 fn main() {
     windows::build!(
         Windows::Foundation::*,
-        Windows::Win32::WindowsAndMessaging::{
+        Windows::Win32::UI::WindowsAndMessaging::{
             GetWindowLongW,
             IsWindowVisible,
             GetAncestor,
@@ -11,35 +11,36 @@ fn main() {
             GetClassNameW,
             GetWindowTextW,
             EnumWindows,
-            GetAncestor_gaFlags,
+            GET_ANCESTOR_FLAGS,
             WINDOW_LONG_PTR_INDEX,
             WINDOW_STYLE,
             WINDOW_EX_STYLE,
         },
-        Windows::Win32::SystemServices::{
+        Windows::Win32::System::Console::{
             GetConsoleWindow,
         },
-        Windows::Win32::Dwm::{
+        Windows::Win32::Graphics::Dwm::{
             DWMWINDOWATTRIBUTE,
             DwmGetWindowAttribute,
+            DWM_CLOAKED_SHELL,
         },
-        Windows::Win32::DisplayDevices::{
-            RECT,
+        Windows::Win32::Foundation::{
+            RECT, BOOL,
         },
-        Windows::Win32::Gdi::{
+        Windows::Win32::Graphics::Gdi::{
             MONITORINFO,
             GetMonitorInfoW,
             EnumDisplayMonitors,
             MonitorFromWindow,
-            MonitorFrom_dwFlags,
+            MONITOR_FROM_FLAGS,
         },
-        Windows::Win32::Dxgi::{
+        Windows::Win32::Graphics::Dxgi::{
             DXGI_FORMAT,
             DXGI_SAMPLE_DESC,
             IDXGIDevice,
             DXGI_ERROR_UNSUPPORTED,
         },
-        Windows::Win32::Direct3D11::{
+        Windows::Win32::Graphics::Direct3D11::{
             D3D11CreateDevice,
             D3D_DRIVER_TYPE,
             D3D11_CREATE_DEVICE_FLAG,
@@ -58,10 +59,9 @@ fn main() {
             ID3D11Texture2D,
             D3D11_SUBRESOURCE_DATA,
         },
-        Windows::Win32::WinRT::{
+        Windows::Win32::System::WinRT::{
            RO_INIT_TYPE,
            RoInitialize,
-           IInspectable,
            IGraphicsCaptureItemInterop,
            IDirect3DDxgiInterfaceAccess,
            CreateDirect3D11DeviceFromDXGIDevice,

@@ -8,16 +8,22 @@ use bindings::Windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsC
 use bindings::Windows::Graphics::DirectX::DirectXPixelFormat;
 use bindings::Windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use bindings::Windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use bindings::Windows::Win32::Direct3D11::{
-    ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_FLAG, D3D11_MAP, D3D11_MAPPED_SUBRESOURCE,
-    D3D11_TEXTURE2D_DESC, D3D11_USAGE,
+use bindings::Windows::Win32::Foundation::HWND;
+use bindings::Windows::Win32::Graphics::Direct3D11::{
+    ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ,
+    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC,
+    D3D11_USAGE_STAGING,
 };
-use bindings::Windows::Win32::Gdi::{MonitorFromWindow, MonitorFrom_dwFlags, HMONITOR};
-use bindings::Windows::Win32::WinRT::{IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_TYPE};
-use bindings::Windows::Win32::WindowsAndMessaging::{
-    GetDesktopWindow, GetWindowThreadProcessId, HWND,
+use bindings::Windows::Win32::Graphics::Gdi::{
+    MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY,
 };
-use windows::{Abi, Interface};
+use bindings::Windows::Win32::System::WinRT::{
+    IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_MULTITHREADED,
+};
+use bindings::Windows::Win32::UI::WindowsAndMessaging::{
+    GetDesktopWindow, GetWindowThreadProcessId,
+};
+use windows::Interface;
 
 use capture::enumerate_capturable_windows;
 use clap::{value_t, App, Arg};
@@ -28,39 +34,19 @@ use window_info::WindowInfo;
 
 fn create_capture_item_for_window(window_handle: HWND) -> windows::Result<GraphicsCaptureItem> {
     let interop = windows::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
-    let mut item: Option<GraphicsCaptureItem> = None;
-    unsafe {
-        interop
-            .CreateForWindow(
-                window_handle,
-                &GraphicsCaptureItem::IID as *const _,
-                item.set_abi(),
-            )
-            .ok()?;
-    }
-    Ok(item.unwrap())
+    unsafe { interop.CreateForWindow(window_handle) }
 }
 
 fn create_capture_item_for_monitor(
     monitor_handle: HMONITOR,
 ) -> windows::Result<GraphicsCaptureItem> {
     let interop = windows::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
-    let mut item: Option<GraphicsCaptureItem> = None;
-    unsafe {
-        interop
-            .CreateForMonitor(
-                monitor_handle,
-                &GraphicsCaptureItem::IID as *const _,
-                item.set_abi(),
-            )
-            .ok()?;
-    }
-    Ok(item.unwrap())
+    unsafe { interop.CreateForMonitor(monitor_handle) }
 }
 
 fn main() -> windows::Result<()> {
     unsafe {
-        RoInitialize(RO_INIT_TYPE::RO_INIT_MULTITHREADED).ok()?;
+        RoInitialize(RO_INIT_MULTITHREADED).ok()?;
     }
 
     // TODO: Make input optional for window and monitor (prompt)
@@ -109,12 +95,8 @@ fn main() -> windows::Result<()> {
         let display = &displays[index];
         create_capture_item_for_monitor(display.handle)?
     } else if matches.is_present("primary") {
-        let monitor_handle = unsafe {
-            MonitorFromWindow(
-                GetDesktopWindow(),
-                MonitorFrom_dwFlags::MONITOR_DEFAULTTOPRIMARY,
-            )
-        };
+        let monitor_handle =
+            unsafe { MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY) };
         create_capture_item_for_monitor(monitor_handle)?
     } else {
         std::process::exit(0);
@@ -146,7 +128,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
     let (sender, receiver) = channel();
     frame_pool.FrameArrived(TypedEventHandler::<
         Direct3D11CaptureFramePool,
-        windows::Object,
+        windows::IInspectable,
     >::new({
         let d3d_device = d3d_device.clone();
         let d3d_context = d3d_context.clone();
@@ -158,10 +140,10 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
                 d3d::get_d3d_interface_from_object(&frame.Surface()?)?;
             let mut desc = D3D11_TEXTURE2D_DESC::default();
             source_texture.GetDesc(&mut desc);
-            desc.BindFlags = 0;
-            desc.MiscFlags = 0;
-            desc.Usage = D3D11_USAGE::D3D11_USAGE_STAGING;
-            desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_READ.0 as u32;
+            desc.BindFlags = D3D11_BIND_FLAG(0);
+            desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
+            desc.Usage = D3D11_USAGE_STAGING;
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
             let copy_texture = {
                 let mut texture = None;
                 d3d_device
@@ -192,7 +174,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
             .Map(
                 Some(resource.clone()),
                 0,
-                D3D11_MAP::D3D11_MAP_READ,
+                D3D11_MAP_READ,
                 0,
                 &mut mapped as *mut _,
             )
