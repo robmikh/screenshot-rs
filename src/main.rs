@@ -10,9 +10,8 @@ use bindings::Windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, Bitma
 use bindings::Windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
 use bindings::Windows::Win32::Foundation::HWND;
 use bindings::Windows::Win32::Graphics::Direct3D11::{
-    ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ,
-    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC,
-    D3D11_USAGE_STAGING,
+    ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ, D3D11_MAP_READ,
+    D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
 };
 use bindings::Windows::Win32::Graphics::Gdi::{
     MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY,
@@ -46,7 +45,7 @@ fn create_capture_item_for_monitor(
 
 fn main() -> windows::Result<()> {
     unsafe {
-        RoInitialize(RO_INIT_MULTITHREADED).ok()?;
+        RoInitialize(RO_INIT_MULTITHREADED)?;
     }
 
     // TODO: Make input optional for window and monitor (prompt)
@@ -144,13 +143,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
             desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
             desc.Usage = D3D11_USAGE_STAGING;
             desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-            let copy_texture = {
-                let mut texture = None;
-                d3d_device
-                    .CreateTexture2D(&desc, std::ptr::null(), &mut texture)
-                    .ok()?;
-                texture.unwrap()
-            };
+            let copy_texture = { d3d_device.CreateTexture2D(&desc, std::ptr::null())? };
 
             d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
 
@@ -169,16 +162,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
         texture.GetDesc(&mut desc as *mut _);
 
         let resource: ID3D11Resource = texture.cast()?;
-        let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
-        d3d_context
-            .Map(
-                Some(resource.clone()),
-                0,
-                D3D11_MAP_READ,
-                0,
-                &mut mapped as *mut _,
-            )
-            .ok()?;
+        let mapped = d3d_context.Map(Some(resource.clone()), 0, D3D11_MAP_READ, 0)?;
 
         // Get a slice of bytes
         let slice: &[u8] = {

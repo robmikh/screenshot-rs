@@ -10,13 +10,13 @@ use bindings::Windows::Win32::Graphics::{
 use bindings::Windows::Win32::System::WinRT::{
     CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
 };
-use windows::{Abi, IInspectable, Interface, HRESULT};
+use windows::{Abi, Interface};
 
 fn create_d3d_device_with_type(
     driver_type: D3D_DRIVER_TYPE,
     flags: D3D11_CREATE_DEVICE_FLAG,
     device: *mut Option<ID3D11Device>,
-) -> HRESULT {
+) -> windows::Result<()> {
     unsafe {
         D3D11CreateDevice(
             None,
@@ -35,29 +35,28 @@ fn create_d3d_device_with_type(
 
 pub fn create_d3d_device() -> windows::Result<ID3D11Device> {
     let mut device = None;
-    let mut hresult = create_d3d_device_with_type(
+    let mut result = create_d3d_device_with_type(
         D3D_DRIVER_TYPE_HARDWARE,
         D3D11_CREATE_DEVICE_BGRA_SUPPORT,
         &mut device,
     );
-    if hresult.0 == DXGI_ERROR_UNSUPPORTED.0 as u32 {
-        hresult = create_d3d_device_with_type(
-            D3D_DRIVER_TYPE_WARP,
-            D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-            &mut device,
-        );
+    if let Err(error) = &result {
+        if error.code() == DXGI_ERROR_UNSUPPORTED {
+            result = create_d3d_device_with_type(
+                D3D_DRIVER_TYPE_WARP,
+                D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+                &mut device,
+            );
+        }
     }
-    hresult.ok()?;
+    result?;
     Ok(device.unwrap())
 }
 
 pub fn create_direct3d_device(d3d_device: &ID3D11Device) -> windows::Result<IDirect3DDevice> {
     let dxgi_device: IDXGIDevice = d3d_device.cast()?;
-    let mut inspectable: Option<IInspectable> = None;
-    unsafe {
-        CreateDirect3D11DeviceFromDXGIDevice(Some(dxgi_device), &mut inspectable as *mut _).ok()?;
-    }
-    inspectable.unwrap().cast()
+    let inspectable = unsafe { CreateDirect3D11DeviceFromDXGIDevice(Some(dxgi_device))? };
+    inspectable.cast()
 }
 
 pub fn get_d3d_interface_from_object<S: Interface, R: Interface + Abi>(
