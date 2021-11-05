@@ -1,5 +1,6 @@
-use bindings::Windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
-use bindings::Windows::Win32::Graphics::{
+use windows::runtime::{Abi, Interface, Result};
+use windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
+use windows::Win32::Graphics::{
     Direct3D11::{
         D3D11CreateDevice, ID3D11Device, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
         D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION, D3D_DRIVER_TYPE, D3D_DRIVER_TYPE_HARDWARE,
@@ -7,16 +8,15 @@ use bindings::Windows::Win32::Graphics::{
     },
     Dxgi::{IDXGIDevice, DXGI_ERROR_UNSUPPORTED},
 };
-use bindings::Windows::Win32::System::WinRT::{
+use windows::Win32::System::WinRT::{
     CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
 };
-use windows::{Abi, Interface};
 
 fn create_d3d_device_with_type(
     driver_type: D3D_DRIVER_TYPE,
     flags: D3D11_CREATE_DEVICE_FLAG,
     device: *mut Option<ID3D11Device>,
-) -> windows::Result<()> {
+) -> Result<()> {
     unsafe {
         D3D11CreateDevice(
             None,
@@ -33,7 +33,7 @@ fn create_d3d_device_with_type(
     }
 }
 
-pub fn create_d3d_device() -> windows::Result<ID3D11Device> {
+pub fn create_d3d_device() -> Result<ID3D11Device> {
     let mut device = None;
     let mut result = create_d3d_device_with_type(
         D3D_DRIVER_TYPE_HARDWARE,
@@ -53,15 +53,13 @@ pub fn create_d3d_device() -> windows::Result<ID3D11Device> {
     Ok(device.unwrap())
 }
 
-pub fn create_direct3d_device(d3d_device: &ID3D11Device) -> windows::Result<IDirect3DDevice> {
+pub fn create_direct3d_device(d3d_device: &ID3D11Device) -> Result<IDirect3DDevice> {
     let dxgi_device: IDXGIDevice = d3d_device.cast()?;
     let inspectable = unsafe { CreateDirect3D11DeviceFromDXGIDevice(Some(dxgi_device))? };
     inspectable.cast()
 }
 
-pub fn get_d3d_interface_from_object<S: Interface, R: Interface + Abi>(
-    object: &S,
-) -> windows::Result<R> {
+pub fn get_d3d_interface_from_object<S: Interface, R: Interface + Abi>(object: &S) -> Result<R> {
     let access: IDirect3DDxgiInterfaceAccess = object.cast()?;
     let object = unsafe { access.GetInterface::<R>()? };
     Ok(object)

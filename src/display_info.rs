@@ -1,6 +1,6 @@
 const CCHDEVICENAME: usize = 32;
-use bindings::Windows::Win32::Foundation::{BOOL, LPARAM, RECT};
-use bindings::Windows::Win32::Graphics::Gdi::{
+use windows::Win32::Foundation::{BOOL, LPARAM, RECT};
+use windows::Win32::Graphics::Gdi::{
     EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
 };
 

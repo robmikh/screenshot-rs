@@ -1,10 +1,8 @@
 use crate::window_info::WindowInfo;
-use bindings::Windows::Win32::Foundation::{BOOL, HWND, LPARAM};
-use bindings::Windows::Win32::Graphics::Dwm::{
-    DwmGetWindowAttribute, DWMWA_CLOAKED, DWM_CLOAKED_SHELL,
-};
-use bindings::Windows::Win32::System::Console::GetConsoleWindow;
-use bindings::Windows::Win32::UI::WindowsAndMessaging::{
+use windows::Win32::Foundation::{BOOL, HWND, LPARAM};
+use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED, DWM_CLOAKED_SHELL};
+use windows::Win32::System::Console::GetConsoleWindow;
+use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible, GA_ROOT,
     GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
 };
@@ -86,7 +84,7 @@ impl CaptureWindowCandidate for WindowInfo {
                 let mut cloaked: u32 = 0;
                 if DwmGetWindowAttribute(
                     self.handle,
-                    std::mem::transmute::<_, u32>(DWMWA_CLOAKED),
+                    DWMWA_CLOAKED,
                     &mut cloaked as *mut _ as *mut _,
                     std::mem::size_of::<u32>() as u32,
                 )

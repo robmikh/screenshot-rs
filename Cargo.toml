@@ -5,7 +5,26 @@ authors = ["robmikh <rob.mikh@outlook.com>"]
 edition = "2018"
 
 [dependencies]
-windows = "0.20.0"
-bindings = { path = "bindings" }
 clap = "2.33.3"
 
+[dependencies.windows]
+version = "0.25.0"
+features = [
+    "Foundation",
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Console",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Direct3D11",
+    "Win32_System_WinRT",
+    "UI",
+    "Storage",
+    "Storage_Streams",
+    "Graphics",
+    "Graphics_Capture",
+    "Graphics_DirectX",
+    "Graphics_DirectX_Direct3D11",
+    "Graphics_Imaging",
+]

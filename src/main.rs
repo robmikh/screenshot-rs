@@ -3,26 +3,22 @@ mod d3d;
 mod display_info;
 mod window_info;
 
-use bindings::Windows::Foundation::TypedEventHandler;
-use bindings::Windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
-use bindings::Windows::Graphics::DirectX::DirectXPixelFormat;
-use bindings::Windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
-use bindings::Windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use bindings::Windows::Win32::Foundation::HWND;
-use bindings::Windows::Win32::Graphics::Direct3D11::{
+use windows::runtime::{IInspectable, Interface, Result};
+use windows::Foundation::TypedEventHandler;
+use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
+use windows::Graphics::DirectX::DirectXPixelFormat;
+use windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
+use windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
+use windows::Win32::Foundation::HWND;
+use windows::Win32::Graphics::Direct3D11::{
     ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ, D3D11_MAP_READ,
     D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
 };
-use bindings::Windows::Win32::Graphics::Gdi::{
-    MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY,
-};
-use bindings::Windows::Win32::System::WinRT::{
+use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
+use windows::Win32::System::WinRT::{
     IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_MULTITHREADED,
 };
-use bindings::Windows::Win32::UI::WindowsAndMessaging::{
-    GetDesktopWindow, GetWindowThreadProcessId,
-};
-use windows::Interface;
+use windows::Win32::UI::WindowsAndMessaging::{GetDesktopWindow, GetWindowThreadProcessId};
 
 use capture::enumerate_capturable_windows;
 use clap::{value_t, App, Arg};
@@ -31,19 +27,17 @@ use std::io::Write;
 use std::sync::mpsc::channel;
 use window_info::WindowInfo;
 
-fn create_capture_item_for_window(window_handle: HWND) -> windows::Result<GraphicsCaptureItem> {
-    let interop = windows::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
+fn create_capture_item_for_window(window_handle: HWND) -> Result<GraphicsCaptureItem> {
+    let interop = windows::runtime::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
     unsafe { interop.CreateForWindow(window_handle) }
 }
 
-fn create_capture_item_for_monitor(
-    monitor_handle: HMONITOR,
-) -> windows::Result<GraphicsCaptureItem> {
-    let interop = windows::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
+fn create_capture_item_for_monitor(monitor_handle: HMONITOR) -> Result<GraphicsCaptureItem> {
+    let interop = windows::runtime::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
     unsafe { interop.CreateForMonitor(monitor_handle) }
 }
 
-fn main() -> windows::Result<()> {
+fn main() -> Result<()> {
     unsafe {
         RoInitialize(RO_INIT_MULTITHREADED)?;
     }
@@ -106,7 +100,7 @@ fn main() -> windows::Result<()> {
     Ok(())
 }
 
-fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
+fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
     let item_size = item.Size()?;
 
     let d3d_device = d3d::create_d3d_device()?;
@@ -125,35 +119,34 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
     let session = frame_pool.CreateCaptureSession(item)?;
 
     let (sender, receiver) = channel();
-    frame_pool.FrameArrived(TypedEventHandler::<
-        Direct3D11CaptureFramePool,
-        windows::IInspectable,
-    >::new({
-        let d3d_device = d3d_device.clone();
-        let d3d_context = d3d_context.clone();
-        let session = session.clone();
-        move |frame_pool, _| unsafe {
-            let frame_pool = frame_pool.as_ref().unwrap();
-            let frame = frame_pool.TryGetNextFrame()?;
-            let source_texture: ID3D11Texture2D =
-                d3d::get_d3d_interface_from_object(&frame.Surface()?)?;
-            let mut desc = D3D11_TEXTURE2D_DESC::default();
-            source_texture.GetDesc(&mut desc);
-            desc.BindFlags = D3D11_BIND_FLAG(0);
-            desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
-            desc.Usage = D3D11_USAGE_STAGING;
-            desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-            let copy_texture = { d3d_device.CreateTexture2D(&desc, std::ptr::null())? };
+    frame_pool.FrameArrived(
+        TypedEventHandler::<Direct3D11CaptureFramePool, IInspectable>::new({
+            let d3d_device = d3d_device.clone();
+            let d3d_context = d3d_context.clone();
+            let session = session.clone();
+            move |frame_pool, _| unsafe {
+                let frame_pool = frame_pool.as_ref().unwrap();
+                let frame = frame_pool.TryGetNextFrame()?;
+                let source_texture: ID3D11Texture2D =
+                    d3d::get_d3d_interface_from_object(&frame.Surface()?)?;
+                let mut desc = D3D11_TEXTURE2D_DESC::default();
+                source_texture.GetDesc(&mut desc);
+                desc.BindFlags = D3D11_BIND_FLAG(0);
+                desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
+                desc.Usage = D3D11_USAGE_STAGING;
+                desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+                let copy_texture = { d3d_device.CreateTexture2D(&desc, std::ptr::null())? };
 
-            d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
+                d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
 
-            session.Close()?;
-            frame_pool.Close()?;
+                session.Close()?;
+                frame_pool.Close()?;
 
-            sender.send(copy_texture).unwrap();
-            Ok(())
-        }
-    }))?;
+                sender.send(copy_texture).unwrap();
+                Ok(())
+            }
+        }),
+    )?;
     session.StartCapture()?;
 
     let texture = receiver.recv().unwrap();
@@ -215,7 +208,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> windows::Result<()> {
     Ok(())
 }
 
-fn get_window_from_query(query: &str) -> windows::Result<WindowInfo> {
+fn get_window_from_query(query: &str) -> Result<WindowInfo> {
     let windows = find_window(query);
     let window = if windows.len() == 0 {
         println!("No window matching '{}' found!", query);

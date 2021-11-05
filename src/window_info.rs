@@ -1,5 +1,5 @@
-use bindings::Windows::Win32::Foundation::{HWND, PWSTR};
-use bindings::Windows::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetWindowTextW};
+use windows::Win32::Foundation::{HWND, PWSTR};
+use windows::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetWindowTextW};
 
 #[derive(Clone)]
 pub struct WindowInfo {
