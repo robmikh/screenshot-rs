@@ -8,8 +8,9 @@ edition = "2018"
 clap = "2.33.3"
 
 [dependencies.windows]
-version = "0.25.0"
+version = "0.28.0"
 features = [
+    "alloc",
     "Foundation",
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
@@ -17,8 +18,12 @@ features = [
     "Win32_Graphics_Dwm",
     "Win32_Graphics_Gdi",
     "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Direct3D",
     "Win32_Graphics_Direct3D11",
     "Win32_System_WinRT",
+    "Win32_System_WinRT_Direct3D11",
+    "Win32_System_WinRT_Graphics_Capture",
     "UI",
     "Storage",
     "Storage_Streams",
