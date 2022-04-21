@@ -121,35 +121,37 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
     let (sender, receiver) = channel();
     frame_pool.FrameArrived(
         TypedEventHandler::<Direct3D11CaptureFramePool, IInspectable>::new({
-            let d3d_device = d3d_device.clone();
-            let d3d_context = d3d_context.clone();
-            let session = session.clone();
-            move |frame_pool, _| unsafe {
+            move |frame_pool, _| {
                 let frame_pool = frame_pool.as_ref().unwrap();
                 let frame = frame_pool.TryGetNextFrame()?;
-                let source_texture: ID3D11Texture2D =
-                    d3d::get_d3d_interface_from_object(&frame.Surface()?)?;
-                let mut desc = D3D11_TEXTURE2D_DESC::default();
-                source_texture.GetDesc(&mut desc);
-                desc.BindFlags = D3D11_BIND_FLAG(0);
-                desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
-                desc.Usage = D3D11_USAGE_STAGING;
-                desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-                let copy_texture = { d3d_device.CreateTexture2D(&desc, std::ptr::null())? };
-
-                d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
-
-                session.Close()?;
-                frame_pool.Close()?;
-
-                sender.send(copy_texture).unwrap();
+                sender.send(frame).unwrap();
                 Ok(())
             }
         }),
     )?;
     session.StartCapture()?;
 
-    let texture = receiver.recv().unwrap();
+    let texture = unsafe {
+        let frame = receiver.recv().unwrap();
+
+        let source_texture: ID3D11Texture2D =
+            d3d::get_d3d_interface_from_object(&frame.Surface()?)?;
+        let mut desc = D3D11_TEXTURE2D_DESC::default();
+        source_texture.GetDesc(&mut desc);
+        desc.BindFlags = D3D11_BIND_FLAG(0);
+        desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        let copy_texture = { d3d_device.CreateTexture2D(&desc, std::ptr::null())? };
+
+        d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
+
+        session.Close()?;
+        frame_pool.Close()?;
+
+        copy_texture
+    };
+
     let bits = unsafe {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc as *mut _);
