@@ -75,7 +75,7 @@ fn main() -> Result<()> {
         create_capture_item_for_window(window.handle)?
     } else if matches.is_present("monitor") {
         let id = value_t!(matches, "monitor", usize).unwrap();
-        let displays = enumerate_displays();
+        let displays = enumerate_displays()?;
         if id == 0 {
             println!("Invalid input, ids start with 1.");
             std::process::exit(1);
