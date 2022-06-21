@@ -1,8 +1,10 @@
 mod capture;
+mod cli;
 mod d3d;
 mod display_info;
 mod window_info;
 
+use cli::CaptureMode;
 use windows::core::{IInspectable, Interface, Result};
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
@@ -21,7 +23,6 @@ use windows::Win32::System::WinRT::{
 use windows::Win32::UI::WindowsAndMessaging::{GetDesktopWindow, GetWindowThreadProcessId};
 
 use capture::enumerate_capturable_windows;
-use clap::{value_t, App, Arg};
 use display_info::enumerate_displays;
 use std::io::Write;
 use std::sync::mpsc::channel;
@@ -42,57 +43,32 @@ fn main() -> Result<()> {
         RoInitialize(RO_INIT_MULTITHREADED)?;
     }
 
-    // TODO: Make input optional for window and monitor (prompt)
-    let matches = App::new("screenshot")
-        .version("0.1.0")
-        .author("Robert Mikhayelyan <rob.mikh@outlook.com>")
-        .about("A demo that saves screenshots of windows or monitors using Windows.Graphics.Capture and Rust/WinRT.")
-        .arg(Arg::with_name("window")
-            .short("w")
-            .long("window")
-            .value_name("window title query")
-            .help("Capture a window who's title contains the provided input")
-            .conflicts_with_all(&["monitor", "primary"])
-            .takes_value(true))
-        .arg(Arg::with_name("monitor")
-            .short("m")
-            .long("monitor")
-            .value_name("monitor number")
-            .help("Capture a monitor")
-            .conflicts_with_all(&["window", "primary"])
-            .takes_value(true))
-        .arg(Arg::with_name("primary")
-            .short("p")
-            .long("primary")
-            .help("Capture the primary monitor (default if no params are specified)")
-            .conflicts_with_all(&["window", "monitor"])
-            .takes_value(false))
-        .get_matches();
+    let mode = CaptureMode::from_args();
 
-    let item = if matches.is_present("window") {
-        let query = matches.value_of("window").unwrap();
-        let window = get_window_from_query(query)?;
-        create_capture_item_for_window(window.handle)?
-    } else if matches.is_present("monitor") {
-        let id = value_t!(matches, "monitor", usize).unwrap();
-        let displays = enumerate_displays()?;
-        if id == 0 {
-            println!("Invalid input, ids start with 1.");
-            std::process::exit(1);
+    let item = match mode {
+        CaptureMode::Window(query) => {
+            let window = get_window_from_query(&query)?;
+            create_capture_item_for_window(window.handle)?
         }
-        let index = (id - 1) as usize;
-        if index >= displays.len() {
-            println!("Invalid input, id is higher than the number of displays!");
-            std::process::exit(1);
+        CaptureMode::Monitor(id) => {
+            let displays = enumerate_displays()?;
+            if id == 0 {
+                println!("Invalid input, ids start with 1.");
+                std::process::exit(1);
+            }
+            let index = (id - 1) as usize;
+            if index >= displays.len() {
+                println!("Invalid input, id is higher than the number of displays!");
+                std::process::exit(1);
+            }
+            let display = &displays[index];
+            create_capture_item_for_monitor(display.handle)?
         }
-        let display = &displays[index];
-        create_capture_item_for_monitor(display.handle)?
-    } else if matches.is_present("primary") {
-        let monitor_handle =
-            unsafe { MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY) };
-        create_capture_item_for_monitor(monitor_handle)?
-    } else {
-        std::process::exit(0);
+        CaptureMode::Primary => {
+            let monitor_handle =
+                unsafe { MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY) };
+            create_capture_item_for_monitor(monitor_handle)?
+        }
     };
 
     take_screenshot(&item)?;
