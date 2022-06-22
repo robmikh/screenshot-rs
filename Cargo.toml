@@ -9,7 +9,7 @@ edition = "2021"
 clap = { version = "3.2.6", features = ["derive"] }
 
 [dependencies.windows]
-version = "0.37.0"
+version = "0.38.0"
 features = [
     "alloc",
     "Foundation",
