@@ -5,7 +5,7 @@ mod display_info;
 mod window_info;
 
 use cli::CaptureMode;
-use windows::core::{IInspectable, Result, ComInterface, HSTRING};
+use windows::core::{ComInterface, IInspectable, Result, HSTRING};
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
 use windows::Graphics::DirectX::DirectXPixelFormat;
@@ -13,8 +13,9 @@ use windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelForm
 use windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Graphics::Direct3D11::{
-    ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ, D3D11_MAP_READ,
-    D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING, D3D11_MAPPED_SUBRESOURCE,
+    ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ,
+    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC,
+    D3D11_USAGE_STAGING,
 };
 use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
 use windows::Win32::System::WinRT::{
@@ -114,7 +115,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
         desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
         desc.Usage = D3D11_USAGE_STAGING;
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        let copy_texture = { 
+        let copy_texture = {
             let mut texture = None;
             d3d_device.CreateTexture2D(&desc, None, Some(&mut texture))?;
             texture.unwrap()
@@ -134,7 +135,13 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
 
         let resource: ID3D11Resource = texture.cast()?;
         let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
-        d3d_context.Map(Some(&resource.clone()), 0, D3D11_MAP_READ, 0, Some(&mut mapped))?;
+        d3d_context.Map(
+            Some(&resource.clone()),
+            0,
+            D3D11_MAP_READ,
+            0,
+            Some(&mut mapped),
+        )?;
 
         // Get a slice of bytes
         let slice: &[u8] = {
@@ -165,7 +172,10 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
         .to_string();
     let folder = StorageFolder::GetFolderFromPathAsync(&HSTRING::from(&path))?.get()?;
     let file = folder
-        .CreateFileAsync(&HSTRING::from("screenshot.png"), CreationCollisionOption::ReplaceExisting)?
+        .CreateFileAsync(
+            &HSTRING::from("screenshot.png"),
+            CreationCollisionOption::ReplaceExisting,
+        )?
         .get()?;
 
     {
