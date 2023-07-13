@@ -35,7 +35,7 @@ pub fn enumerate_displays() -> Result<Box<Vec<DisplayInfo>>> {
         let displays = Box::into_raw(Box::new(Vec::<DisplayInfo>::new()));
         EnumDisplayMonitors(
             HDC(0),
-            std::ptr::null_mut(),
+            None,
             Some(enum_monitor),
             LPARAM(displays as isize),
         )

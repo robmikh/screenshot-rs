@@ -5,7 +5,7 @@ mod display_info;
 mod window_info;
 
 use cli::CaptureMode;
-use windows::core::{IInspectable, Interface, Result};
+use windows::core::{IInspectable, Result, ComInterface, HSTRING};
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
 use windows::Graphics::DirectX::DirectXPixelFormat;
@@ -14,7 +14,7 @@ use windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Graphics::Direct3D11::{
     ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ, D3D11_MAP_READ,
-    D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
+    D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING, D3D11_MAPPED_SUBRESOURCE,
 };
 use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
 use windows::Win32::System::WinRT::{
@@ -80,23 +80,19 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
     let item_size = item.Size()?;
 
     let d3d_device = d3d::create_d3d_device()?;
-    let d3d_context = unsafe {
-        let mut d3d_context = None;
-        d3d_device.GetImmediateContext(&mut d3d_context);
-        d3d_context.unwrap()
-    };
+    let d3d_context = unsafe { d3d_device.GetImmediateContext()? };
     let device = d3d::create_direct3d_device(&d3d_device)?;
     let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
         &device,
         DirectXPixelFormat::B8G8R8A8UIntNormalized,
         1,
-        &item_size,
+        item_size,
     )?;
     let session = frame_pool.CreateCaptureSession(item)?;
 
     let (sender, receiver) = channel();
     frame_pool.FrameArrived(
-        TypedEventHandler::<Direct3D11CaptureFramePool, IInspectable>::new({
+        &TypedEventHandler::<Direct3D11CaptureFramePool, IInspectable>::new({
             move |frame_pool, _| {
                 let frame_pool = frame_pool.as_ref().unwrap();
                 let frame = frame_pool.TryGetNextFrame()?;
@@ -118,9 +114,13 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
         desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
         desc.Usage = D3D11_USAGE_STAGING;
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        let copy_texture = { d3d_device.CreateTexture2D(&desc, std::ptr::null())? };
+        let copy_texture = { 
+            let mut texture = None;
+            d3d_device.CreateTexture2D(&desc, None, Some(&mut texture))?;
+            texture.unwrap()
+        };
 
-        d3d_context.CopyResource(Some(copy_texture.cast()?), Some(source_texture.cast()?));
+        d3d_context.CopyResource(Some(&copy_texture.cast()?), Some(&source_texture.cast()?));
 
         session.Close()?;
         frame_pool.Close()?;
@@ -133,7 +133,8 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
         texture.GetDesc(&mut desc as *mut _);
 
         let resource: ID3D11Resource = texture.cast()?;
-        let mapped = d3d_context.Map(Some(resource.clone()), 0, D3D11_MAP_READ, 0)?;
+        let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+        d3d_context.Map(Some(&resource.clone()), 0, D3D11_MAP_READ, 0, Some(&mut mapped))?;
 
         // Get a slice of bytes
         let slice: &[u8] = {
@@ -153,7 +154,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
             bits[data_begin..data_end].copy_from_slice(&slice[slice_begin..slice_end]);
         }
 
-        d3d_context.Unmap(Some(resource), 0);
+        d3d_context.Unmap(Some(&resource), 0);
 
         bits
     };
@@ -162,14 +163,14 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
         .unwrap()
         .to_string_lossy()
         .to_string();
-    let folder = StorageFolder::GetFolderFromPathAsync(path.as_str())?.get()?;
+    let folder = StorageFolder::GetFolderFromPathAsync(&HSTRING::from(&path))?.get()?;
     let file = folder
-        .CreateFileAsync("screenshot.png", CreationCollisionOption::ReplaceExisting)?
+        .CreateFileAsync(&HSTRING::from("screenshot.png"), CreationCollisionOption::ReplaceExisting)?
         .get()?;
 
     {
         let stream = file.OpenAsync(FileAccessMode::ReadWrite)?.get()?;
-        let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, stream)?.get()?;
+        let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, &stream)?.get()?;
         encoder.SetPixelData(
             BitmapPixelFormat::Bgra8,
             BitmapAlphaMode::Premultiplied,
@@ -202,7 +203,7 @@ fn get_window_from_query(query: &str) -> Result<WindowInfo> {
         println!("    Num       PID    Window Title");
         for (i, window) in windows.iter().enumerate() {
             let mut pid = 0;
-            unsafe { GetWindowThreadProcessId(window.handle, &mut pid) };
+            unsafe { GetWindowThreadProcessId(window.handle, Some(&mut pid)) };
             println!("    {:>3}    {:>6}    {}", i, pid, window.title);
         }
         let index: usize;

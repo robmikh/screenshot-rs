@@ -6,12 +6,11 @@ authors = ["robmikh <rob.mikh@outlook.com>"]
 edition = "2021"
 
 [dependencies]
-clap = { version = "3.2.6", features = ["derive"] }
+clap = { version = "4.3.11", features = ["derive"] }
 
 [dependencies.windows]
-version = "0.38.0"
+version = "0.48.0"
 features = [
-    "alloc",
     "Foundation",
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
