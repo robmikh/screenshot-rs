@@ -27,7 +27,7 @@ pub fn enumerate_capturable_windows() -> Vec<WindowInfo> {
             windows: Vec::new(),
             console_window,
         }));
-        EnumWindows(Some(enum_window), LPARAM(state as isize));
+        EnumWindows(Some(enum_window), LPARAM(state as isize)).unwrap();
         let state = Box::from_raw(state);
         state.windows
     }
@@ -60,7 +60,7 @@ impl CaptureWindowCandidate for WindowInfo {
         unsafe {
             if self.title.is_empty()
                 || self.handle == GetShellWindow()
-                || IsWindowVisible(self.handle).as_bool() == false
+                || !IsWindowVisible(self.handle).as_bool()
                 || GetAncestor(self.handle, GA_ROOT) != self.handle
             {
                 return false;

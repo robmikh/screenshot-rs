@@ -30,11 +30,11 @@ impl DisplayInfo {
     }
 }
 
-pub fn enumerate_displays() -> Result<Box<Vec<DisplayInfo>>> {
+pub fn enumerate_displays() -> Result<Vec<DisplayInfo>> {
     unsafe {
-        let displays = Box::into_raw(Box::new(Vec::<DisplayInfo>::new()));
+        let displays = Box::into_raw(Box::default());
         EnumDisplayMonitors(HDC(0), None, Some(enum_monitor), LPARAM(displays as isize)).ok()?;
-        Ok(Box::from_raw(displays))
+        Ok(*Box::from_raw(displays))
     }
 }
 

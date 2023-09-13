@@ -11,7 +11,7 @@ struct Args {
     #[clap(short, long, conflicts_with = "window", conflicts_with = "primary")]
     monitor: Option<usize>,
 
-    // Capture the primary monitor (default if no params are specified).
+    /// Capture the primary monitor (default if no params are specified).
     #[clap(short, long, conflicts_with = "window", conflicts_with = "monitor")]
     primary: bool,
 }
