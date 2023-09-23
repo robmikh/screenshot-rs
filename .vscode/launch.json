@@ -6,7 +6,9 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/screenshot.exe",
-            "args": [ "-p" ],
+            "args": [
+                "-p"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

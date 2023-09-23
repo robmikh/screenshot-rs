@@ -13,9 +13,8 @@ use windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelForm
 use windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Graphics::Direct3D11::{
-    ID3D11Resource, ID3D11Texture2D, D3D11_BIND_FLAG, D3D11_CPU_ACCESS_READ,
-    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_RESOURCE_MISC_FLAG, D3D11_TEXTURE2D_DESC,
-    D3D11_USAGE_STAGING,
+    ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ, D3D11_MAPPED_SUBRESOURCE,
+    D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
 };
 use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
 use windows::Win32::System::WinRT::{
@@ -57,7 +56,7 @@ fn main() -> Result<()> {
                 println!("Invalid input, ids start with 1.");
                 std::process::exit(1);
             }
-            let index = (id - 1) as usize;
+            let index = id - 1;
             if index >= displays.len() {
                 println!("Invalid input, id is higher than the number of displays!");
                 std::process::exit(1);
@@ -111,10 +110,10 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
             d3d::get_d3d_interface_from_object(&frame.Surface()?)?;
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         source_texture.GetDesc(&mut desc);
-        desc.BindFlags = D3D11_BIND_FLAG(0);
-        desc.MiscFlags = D3D11_RESOURCE_MISC_FLAG(0);
+        desc.BindFlags = 0;
+        desc.MiscFlags = 0;
         desc.Usage = D3D11_USAGE_STAGING;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ.0 as u32;
         let copy_texture = {
             let mut texture = None;
             d3d_device.CreateTexture2D(&desc, None, Some(&mut texture))?;
@@ -199,7 +198,7 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
 
 fn get_window_from_query(query: &str) -> Result<WindowInfo> {
     let windows = find_window(query);
-    let window = if windows.len() == 0 {
+    let window = if windows.is_empty() {
         println!("No window matching '{}' found!", query);
         std::process::exit(1);
     } else if windows.len() == 1 {
@@ -222,7 +221,7 @@ fn get_window_from_query(query: &str) -> Result<WindowInfo> {
             std::io::stdout().flush().unwrap();
             let mut input = String::new();
             std::io::stdin().read_line(&mut input).unwrap();
-            if input.to_lowercase().contains("q") {
+            if input.to_lowercase().contains('q') {
                 std::process::exit(0);
             }
             let input = input.trim();

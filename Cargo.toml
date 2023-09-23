@@ -1,15 +1,15 @@
 [package]
 name = "screenshot"
-version = "0.1.0"
+version = "0.1.1"
 description = "A demo that saves screenshots of windows or monitors using Windows.Graphics.Capture and windows-rs."
 authors = ["robmikh <rob.mikh@outlook.com>"]
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.3.11", features = ["derive"] }
+clap = { version = "4.4.3", features = ["derive"] }
 
 [dependencies.windows]
-version = "0.48.0"
+version = "0.51.1"
 features = [
     "Foundation",
     "Win32_Foundation",
