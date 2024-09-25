@@ -17,7 +17,7 @@ pub fn enumerate_capturable_windows() -> Vec<WindowInfo> {
         // TODO: This works for Command Prompt but not Terminal
         let console_window = {
             let window_handle = GetConsoleWindow();
-            if window_handle.0 == 0 {
+            if window_handle.0.is_null() {
                 None
             } else {
                 Some(window_handle)

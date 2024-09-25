@@ -5,7 +5,7 @@ mod display_info;
 mod window_info;
 
 use cli::CaptureMode;
-use windows::core::{ComInterface, IInspectable, Result, HSTRING};
+use windows::core::{IInspectable, Interface, Result, HSTRING};
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
 use windows::Graphics::DirectX::DirectXPixelFormat;
