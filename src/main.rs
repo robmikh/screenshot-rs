@@ -34,6 +34,7 @@ use windows::Win32::UI::WindowsAndMessaging::{GetDesktopWindow, GetWindowThreadP
 use capture::enumerate_capturable_windows;
 use display_info::enumerate_displays;
 use std::io::Write;
+use std::path::Path;
 use std::sync::mpsc::channel;
 use window_info::WindowInfo;
 
@@ -54,6 +55,14 @@ fn main() -> Result<()> {
 
     let args = Args::parse_args();
     let mode = args.capture_mode();
+
+    // Validate path and derive pixel format
+    let pixel_format = if let Some(pixel_format) = validate_path(&args.output_file) {
+        pixel_format
+    } else {
+        println!("Invalid file extension! Expecting 'png' or 'jxr'.");
+        std::process::exit(1);
+    };
 
     let item = match mode {
         CaptureMode::Window(query) => {
@@ -88,7 +97,6 @@ fn main() -> Result<()> {
     // Initialize WIC
     let wic_factory = create_wic_factory()?;
 
-    let pixel_format = DirectXPixelFormat::B8G8R8A8UIntNormalized;
     let texture = take_screenshot(&item, pixel_format, &d3d_device, &d3d_context)?;
     save_texture(&d3d_context, &texture, &wic_factory, &args.output_file)?;
 
@@ -327,4 +335,19 @@ fn find_window(window_name: &str) -> Vec<WindowInfo> {
         }
     }
     windows
+}
+
+fn validate_path<P: AsRef<Path>>(path: P) -> Option<DirectXPixelFormat> {
+    let path = path.as_ref();
+    let mut pixel_format = None;
+    if let Some(extension) = path.extension() {
+        if let Some(extension) = extension.to_str() {
+            match extension {
+                "png" => pixel_format = Some(DirectXPixelFormat::B8G8R8A8UIntNormalized),
+                "jxr" => pixel_format = Some(DirectXPixelFormat::R16G16B16A16Float),
+                _ => {}
+            }
+        }
+    }
+    pixel_format
 }
