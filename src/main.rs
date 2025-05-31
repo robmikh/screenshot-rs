@@ -2,16 +2,16 @@ mod capture;
 mod cli;
 mod d3d;
 mod display_info;
+mod wic;
 mod window_info;
 
 use cli::{Args, CaptureMode};
+use wic::create_wic_factory;
 use windows::core::{IInspectable, Interface, Result, HSTRING};
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
 use windows::Graphics::DirectX::DirectXPixelFormat;
-use windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
-use windows::Storage::Streams::IRandomAccessStream;
-use windows::Win32::Foundation::{E_INVALIDARG, HWND};
+use windows::Win32::Foundation::{E_FAIL, E_INVALIDARG, HWND};
 use windows::Win32::Graphics::Direct3D11::{
     ID3D11Device, ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ,
     D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
@@ -20,8 +20,11 @@ use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT,
 };
 use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
+use windows::Win32::Graphics::Imaging::{
+    GUID_ContainerFormatPng, GUID_ContainerFormatWmp, GUID_WICPixelFormat32bppBGRA,
+    GUID_WICPixelFormat64bppRGBAHalf, IWICImagingFactory, WICBitmapEncoderNoCache,
+};
 use windows::Win32::System::Com::{STGM_CREATE, STGM_READWRITE};
-use windows::Win32::System::WinRT::{CreateRandomAccessStreamOverStream, BSOS_DEFAULT};
 use windows::Win32::System::WinRT::{
     Graphics::Capture::IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_MULTITHREADED,
 };
@@ -78,11 +81,16 @@ fn main() -> Result<()> {
         }
     };
 
+    // Initialize D3D11
     let d3d_device = d3d::create_d3d_device()?;
     let d3d_context = unsafe { d3d_device.GetImmediateContext()? };
+
+    // Initialize WIC
+    let wic_factory = create_wic_factory()?;
+
     let pixel_format = DirectXPixelFormat::B8G8R8A8UIntNormalized;
     let texture = take_screenshot(&item, pixel_format, &d3d_device, &d3d_context)?;
-    save_texture(&d3d_context, &texture, &args.output_file)?;
+    save_texture(&d3d_context, &texture, &wic_factory, &args.output_file)?;
 
     Ok(())
 }
@@ -144,7 +152,7 @@ fn take_screenshot(
 fn get_bytes_from_texture(
     d3d_context: &ID3D11DeviceContext,
     texture: &ID3D11Texture2D,
-) -> Result<Vec<u8>> {
+) -> Result<(Vec<u8>, u32)> {
     unsafe {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc as *mut _);
@@ -189,21 +197,24 @@ fn get_bytes_from_texture(
 
         d3d_context.Unmap(Some(&resource), 0);
 
-        Ok(bytes)
+        Ok((bytes, bytes_per_pixel))
     }
 }
 
 fn save_texture(
     d3d_context: &ID3D11DeviceContext,
     texture: &ID3D11Texture2D,
+    wic_factory: &IWICImagingFactory,
     path: &str,
 ) -> Result<()> {
-    let (width, height, pixel_format) = unsafe {
+    let (width, height, container_format, pixel_format) = unsafe {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc as *mut _);
-        let pixel_format = match desc.Format {
-            DXGI_FORMAT_B8G8R8A8_UNORM => BitmapPixelFormat::Bgra8,
-            DXGI_FORMAT_R16G16B16A16_FLOAT => BitmapPixelFormat::Rgba16,
+        let (container_format, pixel_format) = match desc.Format {
+            DXGI_FORMAT_B8G8R8A8_UNORM => (GUID_ContainerFormatPng, GUID_WICPixelFormat32bppBGRA),
+            DXGI_FORMAT_R16G16B16A16_FLOAT => {
+                (GUID_ContainerFormatWmp, GUID_WICPixelFormat64bppRGBAHalf)
+            }
             _ => {
                 return Err(windows::core::Error::new(
                     E_INVALIDARG,
@@ -211,29 +222,43 @@ fn save_texture(
                 ))
             }
         };
-        (desc.Width, desc.Height, pixel_format)
+        (desc.Width, desc.Height, container_format, pixel_format)
     };
-    let bytes = get_bytes_from_texture(d3d_context, texture)?;
+    let (bytes, bytes_per_pixel) = get_bytes_from_texture(d3d_context, texture)?;
+    let stride = bytes_per_pixel * width;
 
-    {
-        let stream: IRandomAccessStream = unsafe {
+    let encoder = unsafe { wic_factory.CreateEncoder(&container_format, std::ptr::null())? };
+
+    unsafe {
+        let stream = {
             let path = HSTRING::from(path);
-            let stream =
-                SHCreateStreamOnFileEx(&path, (STGM_CREATE | STGM_READWRITE).0, 0, true, None)?;
-            CreateRandomAccessStreamOverStream(&stream, BSOS_DEFAULT)?
+            SHCreateStreamOnFileEx(&path, (STGM_CREATE | STGM_READWRITE).0, 0, true, None)?
         };
-        let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, &stream)?.get()?;
-        encoder.SetPixelData(
-            pixel_format,
-            BitmapAlphaMode::Premultiplied,
-            width,
-            height,
-            1.0,
-            1.0,
-            &bytes,
-        )?;
+        encoder.Initialize(&stream, WICBitmapEncoderNoCache)?;
+        let (frame, props) = {
+            let mut frame = None;
+            let mut props = None;
+            encoder.CreateNewFrame(&mut frame, &mut props)?;
+            (frame.unwrap(), props.unwrap())
+        };
 
-        encoder.FlushAsync()?.get()?;
+        frame.Initialize(&props)?;
+        frame.SetSize(width, height)?;
+        frame.SetResolution(72.0, 72.0)?; // ??? (Copied from DirectXTex)
+        let mut target_format = pixel_format;
+        frame.SetPixelFormat(&mut target_format)?;
+        if target_format != pixel_format {
+            return Err(windows::core::Error::new(
+                E_FAIL,
+                "Unsupported WIC pixel format!",
+            ));
+        }
+
+        // TODO: Metadata
+
+        frame.WritePixels(height, stride, &bytes)?;
+        frame.Commit()?;
+        encoder.Commit()?;
     }
 
     Ok(())
