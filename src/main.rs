@@ -4,13 +4,13 @@ mod d3d;
 mod display_info;
 mod window_info;
 
-use cli::CaptureMode;
+use cli::{Args, CaptureMode};
 use windows::core::{IInspectable, Interface, Result, HSTRING};
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
 use windows::Graphics::DirectX::DirectXPixelFormat;
 use windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
-use windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
+use windows::Storage::Streams::IRandomAccessStream;
 use windows::Win32::Foundation::{E_INVALIDARG, HWND};
 use windows::Win32::Graphics::Direct3D11::{
     ID3D11Device, ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ,
@@ -20,9 +20,12 @@ use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT,
 };
 use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
+use windows::Win32::System::Com::{STGM_CREATE, STGM_READWRITE};
+use windows::Win32::System::WinRT::{CreateRandomAccessStreamOverStream, BSOS_DEFAULT};
 use windows::Win32::System::WinRT::{
     Graphics::Capture::IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_MULTITHREADED,
 };
+use windows::Win32::UI::Shell::SHCreateStreamOnFileEx;
 use windows::Win32::UI::WindowsAndMessaging::{GetDesktopWindow, GetWindowThreadProcessId};
 
 use capture::enumerate_capturable_windows;
@@ -46,7 +49,8 @@ fn main() -> Result<()> {
         RoInitialize(RO_INIT_MULTITHREADED)?;
     }
 
-    let mode = CaptureMode::from_args();
+    let args = Args::parse_args();
+    let mode = args.capture_mode();
 
     let item = match mode {
         CaptureMode::Window(query) => {
@@ -78,7 +82,7 @@ fn main() -> Result<()> {
     let d3d_context = unsafe { d3d_device.GetImmediateContext()? };
     let pixel_format = DirectXPixelFormat::B8G8R8A8UIntNormalized;
     let texture = take_screenshot(&item, pixel_format, &d3d_device, &d3d_context)?;
-    save_texture(&d3d_context, &texture)?;
+    save_texture(&d3d_context, &texture, &args.output_file)?;
 
     Ok(())
 }
@@ -189,7 +193,11 @@ fn get_bytes_from_texture(
     }
 }
 
-fn save_texture(d3d_context: &ID3D11DeviceContext, texture: &ID3D11Texture2D) -> Result<()> {
+fn save_texture(
+    d3d_context: &ID3D11DeviceContext,
+    texture: &ID3D11Texture2D,
+    path: &str,
+) -> Result<()> {
     let (width, height, pixel_format) = unsafe {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc as *mut _);
@@ -207,20 +215,13 @@ fn save_texture(d3d_context: &ID3D11DeviceContext, texture: &ID3D11Texture2D) ->
     };
     let bytes = get_bytes_from_texture(d3d_context, texture)?;
 
-    let path = std::env::current_dir()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
-    let folder = StorageFolder::GetFolderFromPathAsync(&HSTRING::from(&path))?.get()?;
-    let file = folder
-        .CreateFileAsync(
-            &HSTRING::from("screenshot.png"),
-            CreationCollisionOption::ReplaceExisting,
-        )?
-        .get()?;
-
     {
-        let stream = file.OpenAsync(FileAccessMode::ReadWrite)?.get()?;
+        let stream: IRandomAccessStream = unsafe {
+            let path = HSTRING::from(path);
+            let stream =
+                SHCreateStreamOnFileEx(&path, (STGM_CREATE | STGM_READWRITE).0, 0, true, None)?;
+            CreateRandomAccessStreamOverStream(&stream, BSOS_DEFAULT)?
+        };
         let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, &stream)?.get()?;
         encoder.SetPixelData(
             pixel_format,

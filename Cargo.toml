@@ -6,7 +6,7 @@ authors = ["robmikh <rob.mikh@outlook.com>"]
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.18", features = ["derive"] }
+clap = { version = "4.5.39", features = ["derive"] }
 
 [dependencies.windows]
 version = "0.58"
@@ -21,9 +21,11 @@ features = [
     "Win32_Graphics_Dxgi_Common",
     "Win32_Graphics_Direct3D",
     "Win32_Graphics_Direct3D11",
+    "Win32_System_Com",
     "Win32_System_WinRT",
     "Win32_System_WinRT_Direct3D11",
     "Win32_System_WinRT_Graphics_Capture",
+    "Win32_UI_Shell",
     "UI",
     "Storage",
     "Storage_Streams",
