@@ -11,10 +11,13 @@ use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem
 use windows::Graphics::DirectX::DirectXPixelFormat;
 use windows::Graphics::Imaging::{BitmapAlphaMode, BitmapEncoder, BitmapPixelFormat};
 use windows::Storage::{CreationCollisionOption, FileAccessMode, StorageFolder};
-use windows::Win32::Foundation::HWND;
+use windows::Win32::Foundation::{E_INVALIDARG, HWND};
 use windows::Win32::Graphics::Direct3D11::{
-    ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ, D3D11_MAPPED_SUBRESOURCE,
-    D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
+    ID3D11Device, ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ,
+    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
+};
+use windows::Win32::Graphics::Dxgi::Common::{
+    DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT,
 };
 use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
 use windows::Win32::System::WinRT::{
@@ -71,17 +74,22 @@ fn main() -> Result<()> {
         }
     };
 
-    take_screenshot(&item)?;
+    let d3d_device = d3d::create_d3d_device()?;
+    let d3d_context = unsafe { d3d_device.GetImmediateContext()? };
+    let texture = take_screenshot(&item, &d3d_device, &d3d_context)?;
+    save_texture(&d3d_context, &texture)?;
 
     Ok(())
 }
 
-fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
+fn take_screenshot(
+    item: &GraphicsCaptureItem,
+    d3d_device: &ID3D11Device,
+    d3d_context: &ID3D11DeviceContext,
+) -> Result<ID3D11Texture2D> {
     let item_size = item.Size()?;
 
-    let d3d_device = d3d::create_d3d_device()?;
-    let d3d_context = unsafe { d3d_device.GetImmediateContext()? };
-    let device = d3d::create_direct3d_device(&d3d_device)?;
+    let device = d3d::create_direct3d_device(d3d_device)?;
     let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
         &device,
         DirectXPixelFormat::B8G8R8A8UIntNormalized,
@@ -128,9 +136,27 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
         copy_texture
     };
 
-    let bits = unsafe {
+    Ok(texture)
+}
+
+fn get_bytes_from_texture(
+    d3d_context: &ID3D11DeviceContext,
+    texture: &ID3D11Texture2D,
+) -> Result<Vec<u8>> {
+    unsafe {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc as *mut _);
+
+        let bytes_per_pixel = match desc.Format {
+            DXGI_FORMAT_B8G8R8A8_UNORM => 4,
+            DXGI_FORMAT_R16G16B16A16_FLOAT => 8,
+            _ => {
+                return Err(windows::core::Error::new(
+                    E_INVALIDARG,
+                    "Unsupported pixel format!",
+                ))
+            }
+        };
 
         let resource: ID3D11Resource = texture.cast()?;
         let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
@@ -150,20 +176,28 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
             )
         };
 
-        let bytes_per_pixel = 4;
-        let mut bits = vec![0u8; (desc.Width * desc.Height * bytes_per_pixel) as usize];
+        let mut bytes = vec![0u8; (desc.Width * desc.Height * bytes_per_pixel) as usize];
         for row in 0..desc.Height {
             let data_begin = (row * (desc.Width * bytes_per_pixel)) as usize;
             let data_end = ((row + 1) * (desc.Width * bytes_per_pixel)) as usize;
             let slice_begin = (row * mapped.RowPitch) as usize;
             let slice_end = slice_begin + (desc.Width * bytes_per_pixel) as usize;
-            bits[data_begin..data_end].copy_from_slice(&slice[slice_begin..slice_end]);
+            bytes[data_begin..data_end].copy_from_slice(&slice[slice_begin..slice_end]);
         }
 
         d3d_context.Unmap(Some(&resource), 0);
 
-        bits
+        Ok(bytes)
+    }
+}
+
+fn save_texture(d3d_context: &ID3D11DeviceContext, texture: &ID3D11Texture2D) -> Result<()> {
+    let (width, height) = unsafe {
+        let mut desc = D3D11_TEXTURE2D_DESC::default();
+        texture.GetDesc(&mut desc as *mut _);
+        (desc.Width, desc.Height)
     };
+    let bytes = get_bytes_from_texture(d3d_context, texture)?;
 
     let path = std::env::current_dir()
         .unwrap()
@@ -183,11 +217,11 @@ fn take_screenshot(item: &GraphicsCaptureItem) -> Result<()> {
         encoder.SetPixelData(
             BitmapPixelFormat::Bgra8,
             BitmapAlphaMode::Premultiplied,
-            item_size.Width as u32,
-            item_size.Height as u32,
+            width,
+            height,
             1.0,
             1.0,
-            &bits,
+            &bytes,
         )?;
 
         encoder.FlushAsync()?.get()?;
