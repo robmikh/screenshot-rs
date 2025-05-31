@@ -252,7 +252,6 @@ fn save_texture(
 
         frame.Initialize(&props)?;
         frame.SetSize(width, height)?;
-        frame.SetResolution(72.0, 72.0)?; // ??? (Copied from DirectXTex)
         let mut target_format = pixel_format;
         frame.SetPixelFormat(&mut target_format)?;
         if target_format != pixel_format {
