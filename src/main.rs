@@ -76,7 +76,8 @@ fn main() -> Result<()> {
 
     let d3d_device = d3d::create_d3d_device()?;
     let d3d_context = unsafe { d3d_device.GetImmediateContext()? };
-    let texture = take_screenshot(&item, &d3d_device, &d3d_context)?;
+    let pixel_format = DirectXPixelFormat::B8G8R8A8UIntNormalized;
+    let texture = take_screenshot(&item, pixel_format, &d3d_device, &d3d_context)?;
     save_texture(&d3d_context, &texture)?;
 
     Ok(())
@@ -84,18 +85,15 @@ fn main() -> Result<()> {
 
 fn take_screenshot(
     item: &GraphicsCaptureItem,
+    pixel_format: DirectXPixelFormat,
     d3d_device: &ID3D11Device,
     d3d_context: &ID3D11DeviceContext,
 ) -> Result<ID3D11Texture2D> {
     let item_size = item.Size()?;
 
     let device = d3d::create_direct3d_device(d3d_device)?;
-    let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
-        &device,
-        DirectXPixelFormat::B8G8R8A8UIntNormalized,
-        1,
-        item_size,
-    )?;
+    let frame_pool =
+        Direct3D11CaptureFramePool::CreateFreeThreaded(&device, pixel_format, 1, item_size)?;
     let session = frame_pool.CreateCaptureSession(item)?;
 
     let (sender, receiver) = channel();
@@ -192,10 +190,20 @@ fn get_bytes_from_texture(
 }
 
 fn save_texture(d3d_context: &ID3D11DeviceContext, texture: &ID3D11Texture2D) -> Result<()> {
-    let (width, height) = unsafe {
+    let (width, height, pixel_format) = unsafe {
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc as *mut _);
-        (desc.Width, desc.Height)
+        let pixel_format = match desc.Format {
+            DXGI_FORMAT_B8G8R8A8_UNORM => BitmapPixelFormat::Bgra8,
+            DXGI_FORMAT_R16G16B16A16_FLOAT => BitmapPixelFormat::Rgba16,
+            _ => {
+                return Err(windows::core::Error::new(
+                    E_INVALIDARG,
+                    "Unsupported pixel format!",
+                ))
+            }
+        };
+        (desc.Width, desc.Height, pixel_format)
     };
     let bytes = get_bytes_from_texture(d3d_context, texture)?;
 
@@ -215,7 +223,7 @@ fn save_texture(d3d_context: &ID3D11DeviceContext, texture: &ID3D11Texture2D) ->
         let stream = file.OpenAsync(FileAccessMode::ReadWrite)?.get()?;
         let encoder = BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId()?, &stream)?.get()?;
         encoder.SetPixelData(
-            BitmapPixelFormat::Bgra8,
+            pixel_format,
             BitmapAlphaMode::Premultiplied,
             width,
             height,
