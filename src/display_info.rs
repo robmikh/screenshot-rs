@@ -1,31 +1,25 @@
 use windows::core::Result;
 use windows::Win32::Foundation::{BOOL, LPARAM, RECT};
 use windows::Win32::Graphics::Gdi::{
-    EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFOEXW,
+    EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
 };
 
 #[derive(Clone)]
 pub struct DisplayInfo {
     pub handle: HMONITOR,
-    pub display_name: String,
 }
 
 impl DisplayInfo {
     pub fn new(monitor_handle: HMONITOR) -> Result<Self> {
-        let mut info = MONITORINFOEXW::default();
-        info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+        let mut info = MONITORINFO::default();
+        info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
 
         unsafe {
             GetMonitorInfoW(monitor_handle, &mut info as *mut _ as *mut _).ok()?;
         }
 
-        let display_name = String::from_utf16_lossy(&info.szDevice)
-            .trim_matches(char::from(0))
-            .to_string();
-
         Ok(Self {
             handle: monitor_handle,
-            display_name,
         })
     }
 }
