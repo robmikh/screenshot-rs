@@ -1,5 +1,6 @@
 use crate::window_info::WindowInfo;
-use windows::Win32::Foundation::{BOOL, HWND, LPARAM};
+use windows::core::BOOL;
+use windows::Win32::Foundation::{HWND, LPARAM};
 use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED, DWM_CLOAKED_SHELL};
 use windows::Win32::System::Console::GetConsoleWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
