@@ -1,8 +1,8 @@
-use windows::core::{Result, BOOL};
 use windows::Win32::Foundation::{LPARAM, RECT};
 use windows::Win32::Graphics::Gdi::{
     EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
 };
+use windows::core::{BOOL, Result};
 
 #[derive(Clone)]
 pub struct DisplayInfo {

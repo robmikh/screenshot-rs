@@ -7,29 +7,29 @@ mod window_info;
 
 use cli::{Args, CaptureMode};
 use wic::create_wic_factory;
-use windows::core::{IInspectable, Interface, Result, HSTRING};
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{Direct3D11CaptureFramePool, GraphicsCaptureItem};
 use windows::Graphics::DirectX::DirectXPixelFormat;
 use windows::Win32::Foundation::{E_FAIL, E_INVALIDARG, HWND};
 use windows::Win32::Graphics::Direct3D11::{
-    ID3D11Device, ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D, D3D11_CPU_ACCESS_READ,
-    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
+    D3D11_CPU_ACCESS_READ, D3D11_MAP_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_TEXTURE2D_DESC,
+    D3D11_USAGE_STAGING, ID3D11Device, ID3D11DeviceContext, ID3D11Resource, ID3D11Texture2D,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT,
 };
-use windows::Win32::Graphics::Gdi::{MonitorFromWindow, HMONITOR, MONITOR_DEFAULTTOPRIMARY};
+use windows::Win32::Graphics::Gdi::{HMONITOR, MONITOR_DEFAULTTOPRIMARY, MonitorFromWindow};
 use windows::Win32::Graphics::Imaging::{
     GUID_ContainerFormatPng, GUID_ContainerFormatWmp, GUID_WICPixelFormat32bppBGRA,
     GUID_WICPixelFormat64bppRGBAHalf, IWICImagingFactory, WICBitmapEncoderNoCache,
 };
 use windows::Win32::System::Com::{STGM_CREATE, STGM_READWRITE};
 use windows::Win32::System::WinRT::{
-    Graphics::Capture::IGraphicsCaptureItemInterop, RoInitialize, RO_INIT_MULTITHREADED,
+    Graphics::Capture::IGraphicsCaptureItemInterop, RO_INIT_MULTITHREADED, RoInitialize,
 };
 use windows::Win32::UI::Shell::SHCreateStreamOnFileEx;
 use windows::Win32::UI::WindowsAndMessaging::{GetDesktopWindow, GetWindowThreadProcessId};
+use windows::core::{HSTRING, IInspectable, Interface, Result};
 
 use capture::enumerate_capturable_windows;
 use display_info::enumerate_displays;
@@ -172,7 +172,7 @@ fn get_bytes_from_texture(
                 return Err(windows::core::Error::new(
                     E_INVALIDARG,
                     "Unsupported pixel format!",
-                ))
+                ));
             }
         };
 
@@ -227,7 +227,7 @@ fn save_texture(
                 return Err(windows::core::Error::new(
                     E_INVALIDARG,
                     "Unsupported pixel format!",
-                ))
+                ));
             }
         };
         (desc.Width, desc.Height, container_format, pixel_format)

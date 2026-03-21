@@ -1,12 +1,12 @@
 use crate::window_info::WindowInfo;
-use windows::core::BOOL;
 use windows::Win32::Foundation::{HWND, LPARAM};
-use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED, DWM_CLOAKED_SHELL};
+use windows::Win32::Graphics::Dwm::{DWM_CLOAKED_SHELL, DWMWA_CLOAKED, DwmGetWindowAttribute};
 use windows::Win32::System::Console::GetConsoleWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
-    EnumWindows, GetAncestor, GetShellWindow, GetWindowLongW, IsWindowVisible, GA_ROOT,
-    GWL_EXSTYLE, GWL_STYLE, WS_DISABLED, WS_EX_TOOLWINDOW,
+    EnumWindows, GA_ROOT, GWL_EXSTYLE, GWL_STYLE, GetAncestor, GetShellWindow, GetWindowLongW,
+    IsWindowVisible, WS_DISABLED, WS_EX_TOOLWINDOW,
 };
+use windows::core::BOOL;
 
 struct WindowEnumerationState {
     windows: Vec<WindowInfo>,

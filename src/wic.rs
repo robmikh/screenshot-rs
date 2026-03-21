@@ -1,9 +1,9 @@
 use windows::{
-    core::Result,
     Win32::{
         Graphics::Imaging::{CLSID_WICImagingFactory, IWICImagingFactory},
-        System::Com::{CoCreateInstance, CLSCTX_INPROC_SERVER},
+        System::Com::{CLSCTX_INPROC_SERVER, CoCreateInstance},
     },
+    core::Result,
 };
 
 pub fn create_wic_factory() -> Result<IWICImagingFactory> {
